@@ -1,0 +1,6 @@
+*.tfstate
+*.tfstate.backup
+*.tfvars
+fintrack-key.pem
+.terraform/
+.terraform.lock.hcl
