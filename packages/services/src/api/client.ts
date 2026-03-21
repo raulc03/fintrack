@@ -1,7 +1,9 @@
 const SESSION_KEY = "fintrack_session";
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  // In production: empty string = same origin (Next.js rewrites proxy /api/* to FastAPI)
+  // In local dev: NEXT_PUBLIC_API_URL=http://localhost:8000 bypasses the proxy
+  return process.env.NEXT_PUBLIC_API_URL ?? "";
 }
 
 function getToken(): string | null {

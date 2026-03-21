@@ -50,18 +50,20 @@ services:
     volumes: []
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://api:8000
+      - INTERNAL_API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
 
   api:
     build:
       context: ./apps/api
       target: runner
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://fintrack:${DB_PASSWORD}@db:5432/fintrack
       - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGINS=["https://${DOMAIN}","http://${DOMAIN}"]
     depends_on:
       db:
         condition: service_healthy
