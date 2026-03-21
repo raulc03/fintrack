@@ -41,6 +41,7 @@ coverage/
 
 # Agents
 .claude/
+.agents/
 
 # Locks
 *lock*
