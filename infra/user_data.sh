@@ -4,6 +4,13 @@ set -euxo pipefail
 # Log everything for debugging
 exec > /var/log/user-data.log 2>&1
 
+echo "=== Creating 2GB swap (t2.micro has only 1GB RAM) ==="
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
+
 echo "=== Installing Docker ==="
 dnf update -y
 dnf install -y docker git
