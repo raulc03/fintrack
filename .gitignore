@@ -43,8 +43,9 @@ coverage/
 .claude/
 .agents/
 
-# Locks
-*lock*
+# Locks (keep pnpm-lock.yaml and uv.lock for Docker builds)
+package-lock.json
+yarn.lock
 
 # Tsconfig
 tsconfig.base.json
