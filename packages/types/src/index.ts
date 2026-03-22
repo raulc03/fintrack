@@ -18,3 +18,9 @@ export type {
   LoginInput,
   SignupInput,
 } from "./auth";
+export type {
+  Obligation,
+  CreateObligationInput,
+  UpdateObligationInput,
+  ObligationSummary,
+} from "./obligation";

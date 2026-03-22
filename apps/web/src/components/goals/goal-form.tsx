@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import {
   Select,
   SelectContent,
@@ -105,13 +106,10 @@ export function GoalForm({
                 ? "Monthly Limit"
                 : "Target Amount"}
             </label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0.01"
+            <AmountInput
               placeholder="0.00"
               value={targetAmount}
-              onChange={(e) => setTargetAmount(e.target.value)}
+              onChange={setTargetAmount}
               required
             />
           </div>

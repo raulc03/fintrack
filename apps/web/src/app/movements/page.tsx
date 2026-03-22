@@ -8,6 +8,7 @@ import { MovementForm } from "@/components/movements/movement-form";
 import { useMovements } from "@/hooks/use-movements";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useCategories } from "@/hooks/use-categories";
+import { useObligations } from "@/hooks/use-obligations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeftRight } from "lucide-react";
@@ -42,10 +43,24 @@ export default function MovementsPage() {
   const { movements, loading, create, remove } = useMovements(apiFilters);
   const { accounts } = useAccounts();
   const { categories } = useCategories();
+  const { obligations, link: linkObligation } = useObligations();
 
-  const handleCreate = async (data: Parameters<typeof create>[0]) => {
-    await create(data);
-    toast.success("Movement created");
+  const handleCreate = async (data: Parameters<typeof create>[0] & { obligationId?: string }) => {
+    try {
+      const { obligationId, ...movementData } = data;
+      const created = await create(movementData);
+      if (obligationId && created?.id) {
+        try {
+          await linkObligation(obligationId, created.id);
+        } catch {
+          toast.warning("Movement created, but linking to obligation failed.");
+          return;
+        }
+      }
+      toast.success("Movement created");
+    } catch {
+      toast.error("Failed to create movement");
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -101,6 +116,7 @@ export default function MovementsPage() {
         onSubmit={handleCreate}
         accounts={accounts}
         categories={categories}
+        obligations={obligations}
       />
     </>
   );

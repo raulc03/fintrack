@@ -15,6 +15,10 @@ import type {
   AuthResponse,
   LoginInput,
   SignupInput,
+  Obligation,
+  CreateObligationInput,
+  UpdateObligationInput,
+  ObligationSummary,
 } from "@finance/types";
 
 export interface PaginatedResponse<T> {
@@ -78,9 +82,20 @@ export interface IAuthService {
   logout(): void;
 }
 
+export interface IObligationService {
+  getAll(): Promise<Obligation[]>;
+  getSummary(): Promise<ObligationSummary[]>;
+  create(input: CreateObligationInput): Promise<Obligation>;
+  update(id: string, input: UpdateObligationInput): Promise<Obligation>;
+  delete(id: string): Promise<void>;
+  link(id: string, movementId: string | null): Promise<Obligation>;
+  togglePaid(id: string, paid: boolean): Promise<Obligation>;
+}
+
 export interface IFinanceService {
   accounts: IAccountService;
   movements: IMovementService;
   categories: ICategoryService;
   goals: IGoalService;
+  obligations: IObligationService;
 }

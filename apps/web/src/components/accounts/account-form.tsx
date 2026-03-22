@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import {
   Select,
   SelectContent,
@@ -97,13 +98,10 @@ export function AccountForm({ open, onOpenChange, onSubmit }: AccountFormProps) 
 
           <div className="space-y-4">
             <label className="text-sm font-medium">Initial Balance</label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
+            <AmountInput
               placeholder="0.00"
               value={initialBalance}
-              onChange={(e) => setInitialBalance(e.target.value)}
+              onChange={setInitialBalance}
               required
             />
           </div>

@@ -19,9 +19,11 @@ import type {
   IMovementService,
   ICategoryService,
   IGoalService,
+  IObligationService,
   PaginatedResponse,
 } from "../types";
 import { apiRequest } from "./client";
+import { ApiObligationService } from "./obligation";
 
 class ApiAccountService implements IAccountService {
   async getAll(): Promise<Account[]> {
@@ -181,4 +183,5 @@ export class ApiFinanceService implements IFinanceService {
   movements = new ApiMovementService();
   categories = new ApiCategoryService();
   goals = new ApiGoalService();
+  obligations = new ApiObligationService();
 }

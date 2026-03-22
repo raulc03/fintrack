@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountMovementsTable } from "@/components/accounts/account-movements-table";
@@ -118,12 +119,9 @@ export default function AccountDetailPage({
             <CardContent>
               {editing ? (
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                  <AmountInput
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={setEditValue}
                     onKeyDown={handleKeyDown}
                     className="text-lg h-9"
                     autoFocus

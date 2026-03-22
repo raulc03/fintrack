@@ -5,6 +5,7 @@ import type {
   MovementType,
   Account,
   Category,
+  Obligation,
   CreateMovementInput,
 } from "@finance/types";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -37,7 +39,8 @@ interface QuickAddSheetProps {
   onOpenChange: (open: boolean) => void;
   accounts: Account[];
   categories: Category[];
-  onSubmit: (data: CreateMovementInput) => Promise<unknown>;
+  obligations?: Obligation[];
+  onSubmit: (data: CreateMovementInput & { obligationId?: string }) => Promise<unknown>;
 }
 
 export function QuickAddSheet({
@@ -45,6 +48,7 @@ export function QuickAddSheet({
   onOpenChange,
   accounts,
   categories,
+  obligations = [],
   onSubmit,
 }: QuickAddSheetProps) {
   const [mode, setMode] = useState<"manual" | "voice">("manual");
@@ -54,6 +58,7 @@ export function QuickAddSheet({
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [obligationId, setObligationId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [parsed, setParsed] = useState<ParsedMovement | null>(null);
 
@@ -74,6 +79,7 @@ export function QuickAddSheet({
       setAccountId(defaultAccountId);
       setDestinationAccountId("");
       setCategoryId("");
+      setObligationId("");
       setParsed(null);
       speechReset();
     }
@@ -118,6 +124,7 @@ export function QuickAddSheet({
         destinationAccountId:
           type === "transfer" ? destinationAccountId : undefined,
         categoryId,
+        obligationId: type === "expense" && obligationId ? obligationId : undefined,
       });
       toast.success("Movement created");
       onOpenChange(false);
@@ -164,6 +171,7 @@ export function QuickAddSheet({
               onTypeChange={(t) => {
                 setType(t);
                 setCategoryId("");
+                setObligationId("");
               }}
               amount={amount}
               onAmountChange={setAmount}
@@ -175,8 +183,11 @@ export function QuickAddSheet({
               onDestinationChange={setDestinationAccountId}
               categoryId={categoryId}
               onCategoryChange={setCategoryId}
+              obligationId={obligationId}
+              onObligationChange={setObligationId}
               accounts={accounts}
               categories={filteredCategories}
+              obligations={obligations}
             />
           ) : (
             <VoiceInput
@@ -221,8 +232,11 @@ function ManualForm({
   onDestinationChange,
   categoryId,
   onCategoryChange,
+  obligationId,
+  onObligationChange,
   accounts,
   categories,
+  obligations,
 }: {
   type: MovementType;
   onTypeChange: (t: MovementType) => void;
@@ -236,8 +250,11 @@ function ManualForm({
   onDestinationChange: (v: string) => void;
   categoryId: string;
   onCategoryChange: (v: string) => void;
+  obligationId: string;
+  onObligationChange: (v: string) => void;
   accounts: Account[];
   categories: Category[];
+  obligations: Obligation[];
 }) {
   return (
     <>
@@ -258,13 +275,10 @@ function ManualForm({
         </TabsList>
       </Tabs>
 
-      <Input
-        type="number"
-        step="0.01"
-        min="0.01"
+      <AmountInput
         placeholder="Amount"
         value={amount}
-        onChange={(e) => onAmountChange(e.target.value)}
+        onChange={onAmountChange}
         className="text-lg h-10"
       />
 
@@ -327,6 +341,23 @@ function ManualForm({
                   {c.name}
                 </span>
               </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {type === "expense" && obligations.filter((o) => !o.isPaid).length > 0 && (
+        <Select
+          value={obligationId || "__none__"}
+          onValueChange={(v) => v && onObligationChange(v === "__none__" ? "" : v)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Link obligation (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">None</SelectItem>
+            {obligations.filter((o) => !o.isPaid).map((o) => (
+              <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>

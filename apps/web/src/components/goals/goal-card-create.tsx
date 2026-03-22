@@ -5,6 +5,7 @@ import type { GoalType, Currency, Category, CreateGoalInput } from "@finance/typ
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -90,13 +91,10 @@ export function GoalCardCreate({
               <SelectItem value="PEN">PEN</SelectItem>
             </SelectContent>
           </Select>
-          <Input
-            type="number"
-            step="0.01"
-            min="0.01"
+          <AmountInput
             placeholder={type === "expense_limit" ? "Monthly limit" : "Target amount"}
             value={targetAmount}
-            onChange={(e) => setTargetAmount(e.target.value)}
+            onChange={setTargetAmount}
             onKeyDown={handleKeyDown}
             className="h-7 text-sm"
           />

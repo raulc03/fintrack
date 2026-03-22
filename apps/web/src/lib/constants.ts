@@ -6,6 +6,7 @@ import {
   Wallet,
   Tag,
   Target,
+  Receipt,
 } from "lucide-react";
 import type { MovementType, Category } from "@finance/types";
 
@@ -64,6 +65,7 @@ export const ROUTES = {
   MOVEMENTS: "/movements",
   CATEGORIES: "/categories",
   GOALS: "/goals",
+  OBLIGATIONS: "/obligations",
   LOGIN: "/auth/login",
   SIGNUP: "/auth/signup",
 } as const;
@@ -79,6 +81,7 @@ export const NAV_ITEMS = [
   { href: ROUTES.MOVEMENTS, label: "Movements", icon: ArrowLeftRight },
   { href: ROUTES.CATEGORIES, label: "Categories", icon: Tag },
   { href: ROUTES.GOALS, label: "Goals", icon: Target },
+  { href: ROUTES.OBLIGATIONS, label: "Obligations", icon: Receipt },
 ];
 
 /**
@@ -106,3 +109,25 @@ export function getBalanceColorClass(amount: number): string {
   if (amount < 0) return "text-red-500";
   return "text-muted-foreground";
 }
+
+/**
+ * Coverage thresholds and helpers for obligation/budget progress bars.
+ */
+export const COVERAGE_THRESHOLDS = { GOOD: 80, WARNING: 50 } as const;
+
+export function getCoverageColorClass(percent: number): string {
+  if (percent >= COVERAGE_THRESHOLDS.GOOD) return "text-green-500";
+  if (percent >= COVERAGE_THRESHOLDS.WARNING) return "text-yellow-500";
+  return "text-red-500";
+}
+
+export function getCoverageProgressClass(percent: number): string {
+  if (percent >= COVERAGE_THRESHOLDS.GOOD) return "progress-gradient-green";
+  if (percent >= COVERAGE_THRESHOLDS.WARNING) return "progress-gradient-yellow";
+  return "progress-gradient-red";
+}
+
+/**
+ * Supported currencies — single source of truth.
+ */
+export const SUPPORTED_CURRENCIES = ["USD", "PEN"] as const;

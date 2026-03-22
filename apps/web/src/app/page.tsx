@@ -12,14 +12,17 @@ const SpendingChart = dynamic(
 import { RecentMovements } from "@/components/dashboard/recent-movements";
 import { GoalsProgress } from "@/components/dashboard/goals-progress";
 import { BudgetAlerts } from "@/components/dashboard/budget-alerts";
+import { ObligationsSummary } from "@/components/dashboard/obligations-summary";
 import { QuickAddFab } from "@/components/dashboard/quick-add-fab";
 import { QuickAddSheet } from "@/components/dashboard/quick-add-sheet";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useMovements } from "@/hooks/use-movements";
 import { useGoals } from "@/hooks/use-goals";
 import { useCategories } from "@/hooks/use-categories";
+import { useObligations } from "@/hooks/use-obligations";
 import { Skeleton } from "@/components/ui/skeleton";
 import { grid } from "@/lib/responsive";
+import { toast } from "sonner";
 import type { CreateMovementInput } from "@finance/types";
 
 export default function DashboardPage() {
@@ -27,21 +30,30 @@ export default function DashboardPage() {
   const { movements, loading: movementsLoading, create } = useMovements();
   const { goals, loading: goalsLoading, refetch: refetchGoals } = useGoals();
   const { categories } = useCategories();
+  const { obligations, summaries: obligationSummaries, refetch: refetchObligations, link: linkObligation } = useObligations();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [chartKey, setChartKey] = useState(0);
 
   const loading = accountsLoading || movementsLoading || goalsLoading;
 
   const handleCreate = useCallback(
-    async (input: CreateMovementInput) => {
-      const result = await create(input);
-      // Refetch all dashboard data after creating a movement
+    async (input: CreateMovementInput & { obligationId?: string }) => {
+      const { obligationId, ...movementData } = input;
+      const result = await create(movementData);
+      if (obligationId && result?.id) {
+        try {
+          await linkObligation(obligationId, result.id);
+        } catch {
+          toast.warning("Movement created, but linking to obligation failed.");
+        }
+      }
       refetchAccounts();
       refetchGoals();
+      refetchObligations();
       setChartKey((k) => k + 1);
       return result;
     },
-    [create, refetchAccounts, refetchGoals]
+    [create, linkObligation, refetchAccounts, refetchGoals, refetchObligations]
   );
 
   return (
@@ -67,6 +79,7 @@ export default function DashboardPage() {
             <div className={grid.split}>
               <RecentMovements movements={movements} />
               <div className="space-y-4">
+                <ObligationsSummary obligations={obligations} summaries={obligationSummaries} />
                 <GoalsProgress goals={goals} />
                 <BudgetAlerts goals={goals} />
               </div>
@@ -81,6 +94,7 @@ export default function DashboardPage() {
         onOpenChange={setQuickAddOpen}
         accounts={accounts}
         categories={categories}
+        obligations={obligations}
         onSubmit={handleCreate}
       />
     </>

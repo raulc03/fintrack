@@ -1,0 +1,49 @@
+from pydantic import BaseModel, Field
+
+
+class CreateObligationInput(BaseModel):
+    name: str = Field(min_length=1)
+    categoryId: str
+    estimatedAmount: float = Field(gt=0)
+    currency: str = Field(min_length=3, max_length=3)
+    dueDay: int = Field(ge=1, le=31)
+
+
+class UpdateObligationInput(BaseModel):
+    name: str | None = Field(default=None, min_length=1)
+    categoryId: str | None = None
+    estimatedAmount: float | None = Field(default=None, gt=0)
+    dueDay: int | None = Field(default=None, ge=1, le=31)
+
+
+class LinkMovementInput(BaseModel):
+    movementId: str | None = None
+
+
+class TogglePaidInput(BaseModel):
+    manuallyPaid: bool
+
+
+class ObligationResponse(BaseModel):
+    id: str
+    name: str
+    categoryId: str
+    estimatedAmount: float
+    currency: str
+    dueDay: int
+    isPaid: bool
+    manuallyPaid: bool
+    linkedMovementId: str | None = None
+    isActive: bool
+    createdAt: str
+    updatedAt: str
+
+
+class ObligationSummaryResponse(BaseModel):
+    currency: str
+    totalObligations: float
+    paidAmount: float
+    pendingAmount: float
+    coveragePercent: float
+    currentBalance: float
+    freeAfterObligations: float

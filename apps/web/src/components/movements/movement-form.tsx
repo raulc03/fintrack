@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { MovementType, Account, Category } from "@finance/types";
+import type { MovementType, Account, Category, Obligation } from "@finance/types";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import {
   Select,
   SelectContent,
@@ -31,9 +32,11 @@ interface MovementFormProps {
     accountId: string;
     destinationAccountId?: string;
     categoryId: string;
+    obligationId?: string;
   }) => void;
   accounts: Account[];
   categories: Category[];
+  obligations?: Obligation[];
 }
 
 export function MovementForm({
@@ -42,6 +45,7 @@ export function MovementForm({
   onSubmit,
   accounts,
   categories,
+  obligations = [],
 }: MovementFormProps) {
   const [type, setType] = useState<MovementType>("expense");
   const [amount, setAmount] = useState("");
@@ -50,8 +54,10 @@ export function MovementForm({
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [obligationId, setObligationId] = useState("");
 
   const filteredCategories = filterCategoriesByType(categories, type);
+  const unpaidObligations = obligations.filter((o) => !o.isPaid);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,11 +71,13 @@ export function MovementForm({
       destinationAccountId:
         type === "transfer" ? destinationAccountId : undefined,
       categoryId,
+      obligationId: type === "expense" && obligationId ? obligationId : undefined,
     });
     setAmount("");
     setDescription("");
     setDate(new Date().toISOString().split("T")[0]);
     setCategoryId("");
+    setObligationId("");
     onOpenChange(false);
   };
 
@@ -85,6 +93,7 @@ export function MovementForm({
             onValueChange={(v) => {
               setType(v as MovementType);
               setCategoryId("");
+              setObligationId("");
             }}
           >
             <TabsList className="w-full">
@@ -102,13 +111,10 @@ export function MovementForm({
 
           <div className="space-y-4">
             <label className="text-sm font-medium">Amount</label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0.01"
+            <AmountInput
               placeholder="0.00"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={setAmount}
               required
             />
           </div>
@@ -198,6 +204,26 @@ export function MovementForm({
                         {c.name}
                       </span>
                     </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {type === "expense" && unpaidObligations.length > 0 && (
+            <div className="space-y-4">
+              <label className="text-sm font-medium">Link to Obligation (optional)</label>
+              <Select
+                value={obligationId || "__none__"}
+                onValueChange={(v) => v && setObligationId(v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {unpaidObligations.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

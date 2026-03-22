@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Currency, CreateAccountInput } from "@finance/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -68,13 +69,10 @@ export function AccountCardCreate({ onSave, onCancel }: AccountCardCreateProps) 
         </Select>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Input
-          type="number"
-          step="0.01"
-          min="0"
+        <AmountInput
           placeholder="0.00"
           value={initialBalance}
-          onChange={(e) => setInitialBalance(e.target.value)}
+          onChange={setInitialBalance}
           onKeyDown={handleKeyDown}
           className="text-2xl font-bold h-10 border-none bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/30"
         />
