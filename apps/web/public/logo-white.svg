@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 64" width="220" height="64" role="img" aria-labelledby="ft-white-title">
+  <title id="ft-white-title">FinTrack Logo (White)</title>
+  <!-- Icon -->
+  <g id="icon">
+    <rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="#fafafa" stroke-width="2"/>
+    <rect x="14" y="38" width="8" height="14" rx="2" fill="#fafafa" opacity="0.4"/>
+    <rect x="26" y="28" width="8" height="24" rx="2" fill="#fafafa" opacity="0.6"/>
+    <rect x="38" y="18" width="8" height="34" rx="2" fill="#fafafa"/>
+    <polyline points="14,40 22,34 30,28 38,20 50,12" fill="none" stroke="#fafafa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="44,12 50,12 50,18" fill="none" stroke="#fafafa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- Wordmark -->
+  <g id="wordmark">
+    <text x="74" y="38" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="26" font-weight="700" fill="#fafafa" letter-spacing="-0.5">
+      FinTrack
+    </text>
+  </g>
+</svg>
