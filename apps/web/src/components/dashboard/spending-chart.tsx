@@ -31,36 +31,46 @@ interface SpendingChartProps {
 
 const FALLBACK_COLORS = { muted: "#a1a1aa", card: "#27272a", border: "#3f3f46", cardFg: "#fafafa" };
 
-/** Resolve a CSS variable to a hex color Recharts can render in SVG. */
-function resolveColorAsHex(varName: string, fallback: string): string {
-  const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-  if (!raw) return fallback;
-
-  // Use a temporary element to let the browser convert any color format to rgb
+/** Resolve multiple CSS variables to hex colors Recharts can render in SVG. */
+function resolveColorsAsHex(vars: Record<string, string>): Record<string, string> {
+  const s = getComputedStyle(document.documentElement);
   const el = document.createElement("div");
-  el.style.color = raw.startsWith("oklch(") || raw.startsWith("#") || raw.startsWith("rgb") || raw.startsWith("hsl")
-    ? raw
-    : `oklch(${raw})`;
   document.body.appendChild(el);
-  const computed = getComputedStyle(el).color;
-  document.body.removeChild(el);
 
-  // Parse "rgb(r, g, b)" to hex
-  const match = computed.match(/(\d+),\s*(\d+),\s*(\d+)/);
-  if (!match) return fallback;
-  const hex = (n: number) => n.toString(16).padStart(2, "0");
-  return `#${hex(+match[1])}${hex(+match[2])}${hex(+match[3])}`;
+  const toHex = (n: number) => n.toString(16).padStart(2, "0");
+  const result: Record<string, string> = {};
+
+  for (const [key, fallback] of Object.entries(vars)) {
+    const raw = s.getPropertyValue(key).trim();
+    if (!raw) { result[key] = fallback; continue; }
+
+    el.style.color = raw.startsWith("oklch(") || raw.startsWith("#") || raw.startsWith("rgb") || raw.startsWith("hsl")
+      ? raw
+      : `oklch(${raw})`;
+    const computed = getComputedStyle(el).color;
+    const match = computed.match(/(\d+),\s*(\d+),\s*(\d+)/);
+    result[key] = match ? `#${toHex(+match[1])}${toHex(+match[2])}${toHex(+match[3])}` : fallback;
+  }
+
+  document.body.removeChild(el);
+  return result;
 }
 
 function useChartColors() {
   const [colors, setColors] = useState(FALLBACK_COLORS);
 
   useEffect(() => {
+    const resolved = resolveColorsAsHex({
+      "--muted-foreground": FALLBACK_COLORS.muted,
+      "--card": FALLBACK_COLORS.card,
+      "--border": FALLBACK_COLORS.border,
+      "--card-foreground": FALLBACK_COLORS.cardFg,
+    });
     setColors({
-      muted: resolveColorAsHex("--muted-foreground", FALLBACK_COLORS.muted),
-      card: resolveColorAsHex("--card", FALLBACK_COLORS.card),
-      border: resolveColorAsHex("--border", FALLBACK_COLORS.border),
-      cardFg: resolveColorAsHex("--card-foreground", FALLBACK_COLORS.cardFg),
+      muted: resolved["--muted-foreground"],
+      card: resolved["--card"],
+      border: resolved["--border"],
+      cardFg: resolved["--card-foreground"],
     });
   }, []);
 

@@ -132,7 +132,7 @@ function CategoryGrid({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 rounded-full"
+                className="absolute -top-1 -right-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity bg-background/80 rounded-full"
                 onClick={() => onDelete(cat.id, cat.name)}
                 aria-label={`Delete ${cat.name}`}
               >

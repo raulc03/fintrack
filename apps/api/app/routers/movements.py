@@ -1,12 +1,6 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-
-
-def parse_date(iso_str: str) -> datetime:
-    """Parse ISO date string and strip timezone info for naive DB columns."""
-    dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
-    return dt.replace(tzinfo=None)
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +16,12 @@ from app.schemas.movement import (
     MonthlySummary,
     PaginatedMovements,
 )
+
+def parse_date(iso_str: str) -> datetime:
+    """Parse ISO date string and strip timezone info for naive DB columns."""
+    dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+    return dt.replace(tzinfo=None)
+
 
 router = APIRouter()
 
@@ -242,12 +242,21 @@ async def update_movement(movement_id: str, data: UpdateMovementInput, user: Use
     await reverse_balance(db, movement)
 
     # Apply field updates
-    field_map = {"accountId": "account_id", "destinationAccountId": "destination_account_id", "categoryId": "category_id"}
+    field_map = {
+        "accountId": "account_id",
+        "destinationAccountId": "destination_account_id",
+        "categoryId": "category_id",
+        "exchangeRate": "exchange_rate",
+    }
     for field, value in data.model_dump(exclude_unset=True).items():
         db_field = field_map.get(field, field)
         if db_field == "date" and value:
             value = parse_date(value)
         setattr(movement, db_field, value)
+
+    # Recalculate destination_amount for cross-currency transfers
+    if movement.type == "transfer" and movement.exchange_rate and movement.amount:
+        movement.destination_amount = round(float(movement.amount) * float(movement.exchange_rate), 2)
 
     # Re-apply new balance effect
     await apply_balance(db, movement)

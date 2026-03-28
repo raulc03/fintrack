@@ -82,7 +82,7 @@ export const NAV_ITEMS = [
   { href: ROUTES.MOVEMENTS, label: "Movements", icon: ArrowLeftRight },
   { href: ROUTES.CATEGORIES, label: "Categories", icon: Tag },
   { href: ROUTES.GOALS, label: "Goals", icon: Target },
-  { href: ROUTES.OBLIGATIONS, label: "Obligations", icon: Receipt },
+  { href: ROUTES.OBLIGATIONS, label: "Bills", icon: Receipt },
 ];
 
 /**

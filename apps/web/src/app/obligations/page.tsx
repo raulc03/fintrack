@@ -161,30 +161,30 @@ export default function ObligationsPage() {
                   {obligations.map((o) => (
                     <li
                       key={o.id}
-                      className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                      className="flex flex-wrap items-center gap-2 py-3 border-b border-border last:border-0"
                     >
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => o.isPaid ? handleUnlink(o.id) : setLinkingObligationId(o.id)}
-                          className="cursor-pointer shrink-0"
-                          aria-label={o.isPaid ? `Unlink ${o.name}` : `Link ${o.name} to a movement`}
-                        >
-                          {o.isPaid ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </button>
-                        <div>
-                          <p className={`text-sm font-medium ${o.isPaid ? "text-muted-foreground line-through" : ""}`}>
-                            {o.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Due {o.dueDay}{ordinalSuffix(o.dueDay)} · {o.currency}
-                          </p>
-                        </div>
+                      {/* Left: toggle + name */}
+                      <button
+                        onClick={() => o.isPaid ? handleUnlink(o.id) : setLinkingObligationId(o.id)}
+                        className="cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2"
+                        aria-label={o.isPaid ? `Unlink ${o.name}` : `Link ${o.name} to a movement`}
+                      >
+                        {o.isPaid ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate ${o.isPaid ? "text-muted-foreground line-through" : ""}`}>
+                          {o.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Due {o.dueDay}{ordinalSuffix(o.dueDay)} · {o.currency}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      {/* Right: amount + badge + delete */}
+                      <div className="flex items-center gap-2 ml-auto">
                         <div className="text-right">
                           {o.isPaid && o.linkedMovementAmount != null ? (
                             <>
@@ -193,7 +193,7 @@ export default function ObligationsPage() {
                               </span>
                               {Math.abs(o.linkedMovementAmount - o.estimatedAmount) > 0.01 && (
                                 <p className={`text-[10px] ${o.linkedMovementAmount > o.estimatedAmount ? "text-red-400" : "text-green-400"}`}>
-                                  expected {formatCurrency(o.estimatedAmount, o.currency as Currency)}
+                                  exp. {formatCurrency(o.estimatedAmount, o.currency as Currency)}
                                 </p>
                               )}
                             </>
@@ -203,7 +203,7 @@ export default function ObligationsPage() {
                             </span>
                           )}
                         </div>
-                        <Badge variant={o.isPaid ? "default" : "outline"} className="text-xs">
+                        <Badge variant={o.isPaid ? "default" : "outline"} className="text-xs hidden sm:inline-flex">
                           {o.isPaid ? "Paid" : "Pending"}
                         </Badge>
                         <Button
@@ -345,20 +345,20 @@ function ObligationCreateRow({
             </SelectContent>
           </Select>
         </div>
+        <Select value={categoryId || "__none__"} onValueChange={(v) => v && v !== "__none__" && setCategoryId(v)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Category">
+              {categories.find((c) => c.id === categoryId)?.name ?? "Category"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" disabled>Select category</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex gap-2">
-          <Select value={categoryId || "__none__"} onValueChange={(v) => v && v !== "__none__" && setCategoryId(v)}>
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Category">
-                {categories.find((c) => c.id === categoryId)?.name ?? "Category"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__" disabled>Select category</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <AmountInput
             placeholder="Amount"
             value={amount}

@@ -20,6 +20,7 @@ class UpdateMovementInput(BaseModel):
     accountId: str | None = None
     destinationAccountId: str | None = None
     categoryId: str | None = None
+    exchangeRate: float | None = None
 
 
 class MovementResponse(BaseModel):

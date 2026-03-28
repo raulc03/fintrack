@@ -40,6 +40,7 @@ export function MovementTable({
   }
 
   return (
+    <div className="overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow>
@@ -91,7 +92,7 @@ export function MovementTable({
               </TableCell>
               {(onEdit || onDelete) && (
                 <TableCell>
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     {onEdit && (
                       <Button
                         variant="ghost"
@@ -120,5 +121,6 @@ export function MovementTable({
         })}
       </TableBody>
     </Table>
+    </div>
   );
 }

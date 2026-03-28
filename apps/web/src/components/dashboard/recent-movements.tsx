@@ -43,7 +43,7 @@ export function RecentMovements({ movements, onEdit }: RecentMovementsProps) {
               return (
                 <div
                   key={m.id}
-                  className={`flex items-center justify-between ${onEdit ? "cursor-pointer hover:bg-accent/50 -mx-2 px-2 py-1 rounded-lg transition-colors" : ""}`}
+                  className={`flex items-center justify-between ${onEdit ? "cursor-pointer hover:bg-accent/50 -mx-2 px-2 py-2.5 rounded-lg transition-colors min-h-[44px]" : ""}`}
                   onClick={() => onEdit?.(m)}
                 >
                   <div className="flex items-center gap-3">
