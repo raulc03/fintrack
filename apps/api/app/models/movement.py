@@ -20,5 +20,7 @@ class Movement(Base):
     account_id: Mapped[str] = mapped_column(String, ForeignKey("accounts.id"), nullable=False)
     destination_account_id: Mapped[str | None] = mapped_column(String, ForeignKey("accounts.id"), nullable=True)
     category_id: Mapped[str] = mapped_column(String, ForeignKey("categories.id"), nullable=False)
+    exchange_rate: Mapped[float | None] = mapped_column(Numeric(10, 4), nullable=True)
+    destination_amount: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)

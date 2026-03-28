@@ -17,18 +17,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, Circle, Trash2, Check, X, Receipt, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 import { ordinalSuffix } from "@/lib/format";
 import { getCoverageColorClass, getCoverageProgressClass, SUPPORTED_CURRENCIES } from "@/lib/constants";
-import type { Currency, CreateObligationInput } from "@finance/types";
+import type { Currency, CreateObligationInput, Movement } from "@finance/types";
 
 export default function ObligationsPage() {
-  const { obligations, summaries, loading, error, refetch, create, remove, togglePaid } = useObligations();
+  const { obligations, summaries, availableMovements, loading, error, refetch, create, remove, link } = useObligations();
   const { categories } = useCategories("expense");
   const [creating, setCreating] = useState(false);
+  const [linkingObligationId, setLinkingObligationId] = useState<string | null>(null);
 
   const handleCreate = async (data: CreateObligationInput) => {
     try {
@@ -50,12 +57,23 @@ export default function ObligationsPage() {
     }
   };
 
-  const handleTogglePaid = async (id: string, paid: boolean) => {
+  const handleLinkMovement = async (movementId: string) => {
+    if (!linkingObligationId) return;
     try {
-      await togglePaid(id, paid);
-      toast.success(paid ? "Marked as paid" : "Marked as pending");
+      await link(linkingObligationId, movementId);
+      setLinkingObligationId(null);
+      toast.success("Obligation linked to movement");
     } catch {
-      toast.error("Failed to update obligation");
+      toast.error("Failed to link movement");
+    }
+  };
+
+  const handleUnlink = async (id: string) => {
+    try {
+      await link(id, null);
+      toast.success("Obligation unlinked");
+    } catch {
+      toast.error("Failed to unlink");
     }
   };
 
@@ -82,47 +100,43 @@ export default function ObligationsPage() {
           </Card>
         ) : (
           <>
-            {/* Summary cards per currency */}
-            {summaries.map((s) => {
-              return (
-                <Card key={s.currency}>
-                  <CardContent className="pt-6 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{s.currency} Coverage</span>
-                      <span className={`text-lg font-bold ${getCoverageColorClass(s.coveragePercent)}`}>
-                        {s.coveragePercent.toFixed(0)}%
-                      </span>
+            {summaries.map((s) => (
+              <Card key={s.currency}>
+                <CardContent className="pt-6 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{s.currency} Coverage</span>
+                    <span className={`text-lg font-bold ${getCoverageColorClass(s.coveragePercent)}`}>
+                      {s.coveragePercent.toFixed(0)}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={s.coveragePercent}
+                    className={getCoverageProgressClass(s.coveragePercent)}
+                  />
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Total</p>
+                      <p className="font-medium">{formatCurrency(s.totalObligations, s.currency as Currency)}</p>
                     </div>
-                    <Progress
-                      value={s.coveragePercent}
-                      className={getCoverageProgressClass(s.coveragePercent)}
-                    />
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
-                      <div>
-                        <p className="text-muted-foreground">Total</p>
-                        <p className="font-medium">{formatCurrency(s.totalObligations, s.currency as Currency)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Paid</p>
-                        <p className="font-medium text-green-500">{formatCurrency(s.paidAmount, s.currency as Currency)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Pending</p>
-                        <p className="font-medium text-yellow-500">{formatCurrency(s.pendingAmount, s.currency as Currency)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Free after</p>
-                        <p className={`font-medium ${s.freeAfterObligations >= 0 ? "text-green-500" : "text-red-500"}`}>
-                          {formatCurrency(s.freeAfterObligations, s.currency as Currency)}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="text-muted-foreground">Paid</p>
+                      <p className="font-medium text-green-500">{formatCurrency(s.paidAmount, s.currency as Currency)}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    <div>
+                      <p className="text-muted-foreground">Pending</p>
+                      <p className="font-medium text-yellow-500">{formatCurrency(s.pendingAmount, s.currency as Currency)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Free after</p>
+                      <p className={`font-medium ${s.freeAfterObligations >= 0 ? "text-green-500" : "text-red-500"}`}>
+                        {formatCurrency(s.freeAfterObligations, s.currency as Currency)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
 
-            {/* Obligations list */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm font-medium">Obligations</CardTitle>
@@ -151,10 +165,9 @@ export default function ObligationsPage() {
                     >
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => handleTogglePaid(o.id, !o.manuallyPaid)}
+                          onClick={() => o.isPaid ? handleUnlink(o.id) : setLinkingObligationId(o.id)}
                           className="cursor-pointer shrink-0"
-                          aria-label={o.isPaid ? `Mark ${o.name} as pending` : `Mark ${o.name} as paid`}
-                          disabled={!!o.linkedMovementId}
+                          aria-label={o.isPaid ? `Unlink ${o.name}` : `Link ${o.name} to a movement`}
                         >
                           {o.isPaid ? (
                             <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -172,9 +185,24 @@ export default function ObligationsPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium">
-                          {formatCurrency(o.estimatedAmount, o.currency as Currency)}
-                        </span>
+                        <div className="text-right">
+                          {o.isPaid && o.linkedMovementAmount != null ? (
+                            <>
+                              <span className="text-sm font-medium">
+                                {formatCurrency(o.linkedMovementAmount, o.currency as Currency)}
+                              </span>
+                              {Math.abs(o.linkedMovementAmount - o.estimatedAmount) > 0.01 && (
+                                <p className={`text-[10px] ${o.linkedMovementAmount > o.estimatedAmount ? "text-red-400" : "text-green-400"}`}>
+                                  expected {formatCurrency(o.estimatedAmount, o.currency as Currency)}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-sm font-medium">
+                              {formatCurrency(o.estimatedAmount, o.currency as Currency)}
+                            </span>
+                          )}
+                        </div>
                         <Badge variant={o.isPaid ? "default" : "outline"} className="text-xs">
                           {o.isPaid ? "Paid" : "Pending"}
                         </Badge>
@@ -195,7 +223,68 @@ export default function ObligationsPage() {
           </>
         )}
       </div>
+
+      {/* Movement picker dialog */}
+      <MovementPickerDialog
+        open={linkingObligationId !== null}
+        onOpenChange={(open) => !open && setLinkingObligationId(null)}
+        movements={availableMovements.filter((m) => {
+          const ob = obligations.find((o) => o.id === linkingObligationId);
+          return !ob || m.currency === ob.currency;
+        })}
+        onSelect={handleLinkMovement}
+      />
     </>
+  );
+}
+
+function MovementPickerDialog({
+  open,
+  onOpenChange,
+  movements,
+  onSelect,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  movements: Movement[];
+  onSelect: (movementId: string) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Select a movement</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-y-auto">
+          {movements.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No unlinked expense movements this month.
+            </p>
+          ) : (
+            <ul className="space-y-1">
+              {movements.map((m) => (
+                <li key={m.id}>
+                  <button
+                    onClick={() => onSelect(m.id)}
+                    className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-accent transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{m.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </p>
+                    </div>
+                    <span className="text-sm font-medium">
+                      {formatCurrency(m.amount, m.currency as Currency)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -250,7 +339,7 @@ function ObligationCreateRow({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-{SUPPORTED_CURRENCIES.map((c) => (
+              {SUPPORTED_CURRENCIES.map((c) => (
                 <SelectItem key={c} value={c}>{c}</SelectItem>
               ))}
             </SelectContent>
@@ -259,7 +348,9 @@ function ObligationCreateRow({
         <div className="flex gap-2">
           <Select value={categoryId || "__none__"} onValueChange={(v) => v && v !== "__none__" && setCategoryId(v)}>
             <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder="Category">
+                {categories.find((c) => c.id === categoryId)?.name ?? "Category"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__" disabled>Select category</SelectItem>

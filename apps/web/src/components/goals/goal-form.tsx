@@ -138,7 +138,9 @@ export function GoalForm({
                 onValueChange={(v) => v && setCategoryId(v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select category">
+                    {expenseCategories.find((c) => c.id === categoryId)?.name ?? "Select category"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {expenseCategories.map((c) => (

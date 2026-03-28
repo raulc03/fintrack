@@ -2,23 +2,26 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { financeService } from "@finance/services";
-import type { Obligation, CreateObligationInput, UpdateObligationInput, ObligationSummary } from "@finance/types";
+import type { Obligation, CreateObligationInput, UpdateObligationInput, ObligationSummary, Movement } from "@finance/types";
 
 export function useObligations() {
   const [obligations, setObligations] = useState<Obligation[]>([]);
   const [summaries, setSummaries] = useState<ObligationSummary[]>([]);
+  const [availableMovements, setAvailableMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const [obData, sumData] = await Promise.all([
+      const [obData, sumData, movData] = await Promise.all([
         financeService.obligations.getAll(),
         financeService.obligations.getSummary(),
+        financeService.obligations.getAvailableMovements(),
       ]);
       setObligations(obData);
       setSummaries(sumData);
+      setAvailableMovements(movData);
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -54,11 +57,5 @@ export function useObligations() {
     return updated;
   };
 
-  const togglePaid = async (id: string, paid: boolean) => {
-    const updated = await financeService.obligations.togglePaid(id, paid);
-    await fetch();
-    return updated;
-  };
-
-  return { obligations, summaries, loading, error, refetch: fetch, create, update, remove, link, togglePaid };
+  return { obligations, summaries, availableMovements, loading, error, refetch: fetch, create, update, remove, link };
 }

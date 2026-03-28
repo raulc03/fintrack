@@ -1,18 +1,14 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
-
-
-def parse_date(iso_str: str) -> datetime:
-    dt = parse_date(iso_str.replace("Z", "+00:00"))
-    return dt.replace(tzinfo=None)
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.deps import get_current_user
 from app.models.user import User
 from app.models.goal import Goal, GoalAllocation
+from app.models.movement import Movement
 from app.schemas.goal import (
     CreateGoalInput,
     UpdateGoalInput,
@@ -24,13 +20,19 @@ from app.schemas.goal import (
 router = APIRouter()
 
 
-def to_response(g: Goal) -> GoalResponse:
+def parse_date(iso_str: str) -> datetime:
+    dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+    return dt.replace(tzinfo=None)
+
+
+def to_response(g: Goal, spent: float | None = None) -> GoalResponse:
+    current = spent if spent is not None else float(g.current_amount)
     return GoalResponse(
         id=g.id,
         name=g.name,
         type=g.type,
         targetAmount=float(g.target_amount),
-        currentAmount=float(g.current_amount),
+        currentAmount=current,
         currency=g.currency,
         categoryId=g.category_id,
         deadline=g.deadline.isoformat() if g.deadline else None,
@@ -50,10 +52,68 @@ def alloc_response(a: GoalAllocation) -> GoalAllocationResponse:
     )
 
 
+async def get_monthly_expense_totals(
+    db: AsyncSession,
+    user_id: str,
+    category_id: str | None = None,
+    currency: str | None = None,
+) -> dict[str, float]:
+    """Sum expenses by category for the current month, optionally filtered."""
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    month_end = datetime(now.year + (now.month // 12), (now.month % 12) + 1, 1)
+
+    query = (
+        select(Movement.category_id, func.sum(Movement.amount))
+        .where(
+            Movement.user_id == user_id,
+            Movement.type == "expense",
+            Movement.date >= month_start,
+            Movement.date < month_end,
+        )
+        .group_by(Movement.category_id)
+    )
+    if category_id:
+        query = query.where(Movement.category_id == category_id)
+    if currency:
+        query = query.where(Movement.currency == currency)
+
+    result = await db.execute(query)
+    return {row[0]: float(row[1]) for row in result.all()}
+
+
 @router.get("", response_model=list[GoalResponse])
 async def get_goals(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Goal).where(Goal.user_id == user.id))
-    return [to_response(g) for g in result.scalars()]
+    goals = list(result.scalars().all())
+
+    # Get expense totals grouped by (category, currency) for expense_limit goals
+    expense_totals: dict[tuple[str, str], float] = {}
+    has_expense_limits = any(g.type == "expense_limit" and g.category_id for g in goals)
+    if has_expense_limits:
+        now = datetime.utcnow()
+        month_start = datetime(now.year, now.month, 1)
+        month_end = datetime(now.year + (now.month // 12), (now.month % 12) + 1, 1)
+        result = await db.execute(
+            select(Movement.category_id, Movement.currency, func.sum(Movement.amount))
+            .where(
+                Movement.user_id == user.id,
+                Movement.type == "expense",
+                Movement.date >= month_start,
+                Movement.date < month_end,
+            )
+            .group_by(Movement.category_id, Movement.currency)
+        )
+        expense_totals = {(row[0], row[1]): float(row[2]) for row in result.all()}
+
+    responses = []
+    for g in goals:
+        if g.type == "expense_limit" and g.category_id:
+            spent = expense_totals.get((g.category_id, g.currency), 0.0)
+            responses.append(to_response(g, spent))
+        else:
+            responses.append(to_response(g))
+    return responses
 
 
 @router.get("/{goal_id}", response_model=GoalResponse)
@@ -62,6 +122,10 @@ async def get_goal(goal_id: str, user: User = Depends(get_current_user), db: Asy
     goal = result.scalar_one_or_none()
     if not goal:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Goal not found")
+
+    if goal.type == "expense_limit" and goal.category_id:
+        totals = await get_monthly_expense_totals(db, user.id, category_id=goal.category_id, currency=goal.currency)
+        return to_response(goal, totals.get(goal.category_id, 0.0))
     return to_response(goal)
 
 
@@ -80,6 +144,10 @@ async def create_goal(data: CreateGoalInput, user: User = Depends(get_current_us
     )
     db.add(goal)
     await db.flush()
+
+    if goal.type == "expense_limit" and goal.category_id:
+        totals = await get_monthly_expense_totals(db, user.id, category_id=goal.category_id, currency=goal.currency)
+        return to_response(goal, totals.get(goal.category_id, 0.0))
     return to_response(goal)
 
 
@@ -98,6 +166,10 @@ async def update_goal(goal_id: str, data: UpdateGoalInput, user: User = Depends(
         setattr(goal, db_field, value)
 
     await db.flush()
+
+    if goal.type == "expense_limit" and goal.category_id:
+        totals = await get_monthly_expense_totals(db, user.id, category_id=goal.category_id, currency=goal.currency)
+        return to_response(goal, totals.get(goal.category_id, 0.0))
     return to_response(goal)
 
 
@@ -131,7 +203,6 @@ async def allocate(goal_id: str, data: GoalAllocationInput, user: User = Depends
 
 @router.get("/{goal_id}/allocations", response_model=list[GoalAllocationResponse])
 async def get_allocations(goal_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    # Verify goal belongs to user
     goal_result = await db.execute(select(Goal).where(Goal.id == goal_id, Goal.user_id == user.id))
     if not goal_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Goal not found")

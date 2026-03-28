@@ -45,6 +45,12 @@ export function useMovements(filters?: MovementFilters) {
     return created;
   };
 
+  const update = async (id: string, input: Partial<CreateMovementInput>) => {
+    const updated = await financeService.movements.update(id, input);
+    await fetch();
+    return updated;
+  };
+
   const remove = async (id: string) => {
     await financeService.movements.delete(id);
     await fetch();
@@ -59,6 +65,7 @@ export function useMovements(filters?: MovementFilters) {
     error,
     refetch: fetch,
     create,
+    update,
     remove,
   };
 }

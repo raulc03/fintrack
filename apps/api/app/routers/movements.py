@@ -37,6 +37,8 @@ def to_response(m: Movement) -> MovementResponse:
         accountId=m.account_id,
         destinationAccountId=m.destination_account_id,
         categoryId=m.category_id,
+        exchangeRate=float(m.exchange_rate) if m.exchange_rate is not None else None,
+        destinationAmount=float(m.destination_amount) if m.destination_amount is not None else None,
         createdAt=m.created_at.isoformat(),
         updatedAt=m.updated_at.isoformat(),
     )
@@ -168,14 +170,65 @@ async def create_movement(data: CreateMovementInput, user: User = Depends(get_cu
     elif data.type == "expense":
         account.current_balance = float(account.current_balance) - data.amount
     elif data.type == "transfer" and data.destinationAccountId:
-        account.current_balance = float(account.current_balance) - data.amount
         dest_result = await db.execute(select(Account).where(Account.id == data.destinationAccountId, Account.user_id == user.id))
         dest = dest_result.scalar_one_or_none()
-        if dest:
+        if not dest:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Destination account not found")
+        # Validate exchange rate before any balance mutations
+        is_cross_currency = account.currency != dest.currency
+        if is_cross_currency:
+            if not data.exchangeRate or data.exchangeRate <= 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Exchange rate required for cross-currency transfers")
+        # All validation passed — now mutate balances
+        account.current_balance = float(account.current_balance) - data.amount
+        if is_cross_currency:
+            dest_amount = round(data.amount * data.exchangeRate, 2)
+            movement.exchange_rate = data.exchangeRate
+            movement.destination_amount = dest_amount
+            dest.current_balance = float(dest.current_balance) + dest_amount
+        else:
             dest.current_balance = float(dest.current_balance) + data.amount
 
     await db.flush()
     return to_response(movement)
+
+
+async def reverse_balance(db: AsyncSession, movement: Movement) -> None:
+    """Undo a movement's effect on account balances."""
+    acct_result = await db.execute(select(Account).where(Account.id == movement.account_id))
+    account = acct_result.scalar_one_or_none()
+    if not account:
+        return
+    if movement.type == "income":
+        account.current_balance = float(account.current_balance) - float(movement.amount)
+    elif movement.type == "expense":
+        account.current_balance = float(account.current_balance) + float(movement.amount)
+    elif movement.type == "transfer" and movement.destination_account_id:
+        account.current_balance = float(account.current_balance) + float(movement.amount)
+        dest_result = await db.execute(select(Account).where(Account.id == movement.destination_account_id))
+        dest = dest_result.scalar_one_or_none()
+        if dest:
+            credit = float(movement.destination_amount) if movement.destination_amount else float(movement.amount)
+            dest.current_balance = float(dest.current_balance) - credit
+
+
+async def apply_balance(db: AsyncSession, movement: Movement) -> None:
+    """Apply a movement's effect on account balances."""
+    acct_result = await db.execute(select(Account).where(Account.id == movement.account_id))
+    account = acct_result.scalar_one_or_none()
+    if not account:
+        return
+    if movement.type == "income":
+        account.current_balance = float(account.current_balance) + float(movement.amount)
+    elif movement.type == "expense":
+        account.current_balance = float(account.current_balance) - float(movement.amount)
+    elif movement.type == "transfer" and movement.destination_account_id:
+        account.current_balance = float(account.current_balance) - float(movement.amount)
+        dest_result = await db.execute(select(Account).where(Account.id == movement.destination_account_id))
+        dest = dest_result.scalar_one_or_none()
+        if dest:
+            credit = float(movement.destination_amount) if movement.destination_amount else float(movement.amount)
+            dest.current_balance = float(dest.current_balance) + credit
 
 
 @router.patch("/{movement_id}", response_model=MovementResponse)
@@ -185,12 +238,19 @@ async def update_movement(movement_id: str, data: UpdateMovementInput, user: Use
     if not movement:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found")
 
+    # Reverse old balance effect
+    await reverse_balance(db, movement)
+
+    # Apply field updates
+    field_map = {"accountId": "account_id", "destinationAccountId": "destination_account_id", "categoryId": "category_id"}
     for field, value in data.model_dump(exclude_unset=True).items():
-        field_map = {"accountId": "account_id", "destinationAccountId": "destination_account_id", "categoryId": "category_id"}
         db_field = field_map.get(field, field)
         if db_field == "date" and value:
             value = parse_date(value)
         setattr(movement, db_field, value)
+
+    # Re-apply new balance effect
+    await apply_balance(db, movement)
 
     await db.flush()
     return to_response(movement)
@@ -202,4 +262,6 @@ async def delete_movement(movement_id: str, user: User = Depends(get_current_use
     movement = result.scalar_one_or_none()
     if not movement:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found")
+
+    await reverse_balance(db, movement)
     await db.delete(movement)

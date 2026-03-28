@@ -3,6 +3,7 @@ import type {
   CreateObligationInput,
   UpdateObligationInput,
   ObligationSummary,
+  Movement,
 } from "@finance/types";
 import type { IObligationService } from "../types";
 import { apiRequest } from "./client";
@@ -41,10 +42,7 @@ export class ApiObligationService implements IObligationService {
     });
   }
 
-  async togglePaid(id: string, paid: boolean): Promise<Obligation> {
-    return apiRequest<Obligation>(`/api/obligations/${encodeURIComponent(id)}/toggle-paid`, {
-      method: "PATCH",
-      body: JSON.stringify({ manuallyPaid: paid }),
-    });
+  async getAvailableMovements(): Promise<Movement[]> {
+    return apiRequest<Movement[]>("/api/obligations/available-movements");
   }
 }

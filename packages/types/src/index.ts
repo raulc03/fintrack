@@ -24,3 +24,7 @@ export type {
   UpdateObligationInput,
   ObligationSummary,
 } from "./obligation";
+export type {
+  UserSettings,
+  UpdateSettingsInput,
+} from "./settings";

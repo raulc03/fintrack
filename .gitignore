@@ -49,3 +49,9 @@ yarn.lock
 
 # Tsconfig
 tsconfig.base.json
+
+# Skills json
+skills-lock.json
+
+# Terraform
+infra/tfplan

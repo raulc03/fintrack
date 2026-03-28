@@ -24,6 +24,7 @@ import type {
 } from "../types";
 import { apiRequest } from "./client";
 import { ApiObligationService } from "./obligation";
+import { ApiSettingsService } from "./settings";
 
 class ApiAccountService implements IAccountService {
   async getAll(): Promise<Account[]> {
@@ -184,4 +185,5 @@ export class ApiFinanceService implements IFinanceService {
   categories = new ApiCategoryService();
   goals = new ApiGoalService();
   obligations = new ApiObligationService();
+  settings = new ApiSettingsService();
 }

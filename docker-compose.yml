@@ -10,6 +10,8 @@ services:
     volumes:
       - ./apps/web/src:/app/apps/web/src
       - ./apps/web/public:/app/apps/web/public
+      - ./apps/web/tsconfig.json:/app/apps/web/tsconfig.json
+      - ./apps/web/next.config.ts:/app/apps/web/next.config.ts
       - ./packages:/app/packages
     environment:
       - NODE_ENV=development
@@ -21,7 +23,8 @@ services:
 
   api:
     build:
-      context: ./apps/api
+      context: .
+      dockerfile: apps/api/Dockerfile
       target: dev
     ports:
       - "8000:8000"
@@ -31,6 +34,12 @@ services:
       - DATABASE_URL=postgresql+asyncpg://fintrack:fintrack@db:5432/fintrack
       - JWT_SECRET=dev-secret-change-in-prod
       - CORS_ORIGINS=["http://localhost:3000","http://localhost:3001","http://localhost:3002"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     depends_on:
       db:
         condition: service_healthy

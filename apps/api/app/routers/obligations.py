@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,15 +14,22 @@ from app.schemas.obligation import (
     CreateObligationInput,
     UpdateObligationInput,
     LinkMovementInput,
-    TogglePaidInput,
     ObligationResponse,
     ObligationSummaryResponse,
 )
+from app.schemas.movement import MovementResponse
 
 router = APIRouter()
 
 
-def to_response(o: Obligation) -> ObligationResponse:
+def get_current_month_range() -> tuple[datetime, datetime]:
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    month_end = datetime(now.year + (now.month // 12), (now.month % 12) + 1, 1)
+    return month_start, month_end
+
+
+def to_response(o: Obligation, linked_amount: float | None = None) -> ObligationResponse:
     return ObligationResponse(
         id=o.id,
         name=o.name,
@@ -28,17 +37,34 @@ def to_response(o: Obligation) -> ObligationResponse:
         estimatedAmount=float(o.estimated_amount),
         currency=o.currency,
         dueDay=o.due_day,
-        isPaid=o.manually_paid or o.linked_movement_id is not None,
-        manuallyPaid=o.manually_paid,
+        isPaid=o.linked_movement_id is not None,
         linkedMovementId=o.linked_movement_id,
+        linkedMovementAmount=linked_amount,
         isActive=o.is_active,
         createdAt=o.created_at.isoformat(),
         updatedAt=o.updated_at.isoformat(),
     )
 
 
+def mov_to_response(m: Movement) -> MovementResponse:
+    return MovementResponse(
+        id=m.id,
+        type=m.type,
+        amount=float(m.amount),
+        currency=m.currency,
+        description=m.description,
+        date=m.date.isoformat(),
+        accountId=m.account_id,
+        destinationAccountId=m.destination_account_id,
+        categoryId=m.category_id,
+        exchangeRate=float(m.exchange_rate) if m.exchange_rate is not None else None,
+        destinationAmount=float(m.destination_amount) if m.destination_amount is not None else None,
+        createdAt=m.created_at.isoformat(),
+        updatedAt=m.updated_at.isoformat(),
+    )
+
+
 async def get_user_obligation(db: AsyncSession, obligation_id: str, user_id: str) -> Obligation:
-    """Fetch an obligation by ID, ensuring it belongs to the user."""
     result = await db.execute(
         select(Obligation).where(Obligation.id == obligation_id, Obligation.user_id == user_id)
     )
@@ -46,6 +72,49 @@ async def get_user_obligation(db: AsyncSession, obligation_id: str, user_id: str
     if not obligation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Obligation not found")
     return obligation
+
+
+async def get_linked_amounts(db: AsyncSession, obligations: list[Obligation], user_id: str) -> dict[str, float]:
+    """Batch-load actual amounts for linked movements."""
+    linked_ids = [o.linked_movement_id for o in obligations if o.linked_movement_id]
+    if not linked_ids:
+        return {}
+    result = await db.execute(
+        select(Movement.id, Movement.amount).where(Movement.id.in_(linked_ids), Movement.user_id == user_id)
+    )
+    return {row[0]: float(row[1]) for row in result.all()}
+
+
+@router.get("/available-movements", response_model=list[MovementResponse])
+async def get_available_movements(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current month expense movements not linked to any obligation."""
+    month_start, month_end = get_current_month_range()
+
+    # NOT EXISTS is NULL-safe (unlike NOT IN)
+    linked_exists = (
+        select(Obligation.id)
+        .where(
+            Obligation.user_id == user.id,
+            Obligation.linked_movement_id == Movement.id,
+        )
+        .exists()
+    )
+
+    result = await db.execute(
+        select(Movement)
+        .where(
+            Movement.user_id == user.id,
+            Movement.type == "expense",
+            Movement.date >= month_start,
+            Movement.date < month_end,
+            ~linked_exists,
+        )
+        .order_by(Movement.date.desc())
+    )
+    return [mov_to_response(m) for m in result.scalars().all()]
 
 
 @router.get("", response_model=list[ObligationResponse])
@@ -58,7 +127,12 @@ async def get_obligations(
         .where(Obligation.user_id == user.id, Obligation.is_active.is_(True))
         .order_by(Obligation.due_day)
     )
-    return [to_response(o) for o in result.scalars().all()]
+    obligations = list(result.scalars().all())
+    amounts = await get_linked_amounts(db, obligations, user.id)
+    return [
+        to_response(o, amounts.get(o.linked_movement_id))
+        for o in obligations
+    ]
 
 
 @router.get("/summary", response_model=list[ObligationSummaryResponse])
@@ -69,14 +143,13 @@ async def get_summary(
     result = await db.execute(
         select(Obligation).where(Obligation.user_id == user.id, Obligation.is_active.is_(True))
     )
-    obligations = result.scalars().all()
+    obligations = list(result.scalars().all())
+    amounts = await get_linked_amounts(db, obligations, user.id)
 
-    # Group by currency
     by_currency: dict[str, list[Obligation]] = {}
     for o in obligations:
         by_currency.setdefault(o.currency, []).append(o)
 
-    # Fetch all balances in one query
     balance_result = await db.execute(
         select(Account.currency, func.sum(Account.current_balance))
         .where(Account.user_id == user.id)
@@ -87,11 +160,12 @@ async def get_summary(
     summaries = []
     for currency, obs in by_currency.items():
         total = sum(float(o.estimated_amount) for o in obs)
-        paid = sum(
-            float(o.estimated_amount) for o in obs
-            if o.manually_paid or o.linked_movement_id is not None
-        )
-        pending = total - paid
+        paid = 0.0
+        for o in obs:
+            if o.linked_movement_id:
+                # Use actual movement amount if available, else estimated
+                paid += amounts.get(o.linked_movement_id, float(o.estimated_amount))
+        pending = max(total - paid, 0.0)
         coverage = (paid / total * 100) if total > 0 else 100
         current_balance = float(balances.get(currency, 0))
 
@@ -164,31 +238,16 @@ async def link_movement(
 ):
     obligation = await get_user_obligation(db, obligation_id, user.id)
 
+    linked_amount: float | None = None
     if data.movementId:
         mov_result = await db.execute(
             select(Movement).where(Movement.id == data.movementId, Movement.user_id == user.id)
         )
-        if not mov_result.scalar_one_or_none():
+        mov = mov_result.scalar_one_or_none()
+        if not mov:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found")
+        linked_amount = float(mov.amount)
 
     obligation.linked_movement_id = data.movementId
     await db.flush()
-    return to_response(obligation)
-
-
-@router.patch("/{obligation_id}/toggle-paid", response_model=ObligationResponse)
-async def toggle_paid(
-    obligation_id: str,
-    data: TogglePaidInput,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    obligation = await get_user_obligation(db, obligation_id, user.id)
-    obligation.manually_paid = data.manuallyPaid
-
-    # If marking as unpaid, also clear the linked movement
-    if not data.manuallyPaid:
-        obligation.linked_movement_id = None
-
-    await db.flush()
-    return to_response(obligation)
+    return to_response(obligation, linked_amount)

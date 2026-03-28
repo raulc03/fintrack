@@ -13,18 +13,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency";
 import { MOVEMENT_TYPE_CONFIG } from "@/lib/constants";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface MovementTableProps {
   movements: Movement[];
   categories: Category[];
+  onEdit?: (movement: Movement) => void;
   onDelete?: (id: string) => void;
 }
 
 export function MovementTable({
   movements,
   categories,
+  onEdit,
   onDelete,
 }: MovementTableProps) {
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
@@ -46,7 +48,7 @@ export function MovementTable({
           <TableHead>Description</TableHead>
           <TableHead className="hidden sm:table-cell">Category</TableHead>
           <TableHead className="text-right">Amount</TableHead>
-          {onDelete && <TableHead className="w-10" />}
+          {(onEdit || onDelete) && <TableHead className="w-20" />}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -87,15 +89,30 @@ export function MovementTable({
                 {m.type === "expense" ? "-" : ""}
                 {formatCurrency(m.amount, m.currency)}
               </TableCell>
-              {onDelete && (
+              {(onEdit || onDelete) && (
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(m.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  </Button>
+                  <div className="flex gap-1">
+                    {onEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit(m)}
+                        aria-label={`Edit ${m.description}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(m.id)}
+                        aria-label={`Delete ${m.description}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               )}
             </TableRow>

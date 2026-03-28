@@ -19,6 +19,8 @@ import type {
   CreateObligationInput,
   UpdateObligationInput,
   ObligationSummary,
+  UserSettings,
+  UpdateSettingsInput,
 } from "@finance/types";
 
 export interface PaginatedResponse<T> {
@@ -89,7 +91,12 @@ export interface IObligationService {
   update(id: string, input: UpdateObligationInput): Promise<Obligation>;
   delete(id: string): Promise<void>;
   link(id: string, movementId: string | null): Promise<Obligation>;
-  togglePaid(id: string, paid: boolean): Promise<Obligation>;
+  getAvailableMovements(): Promise<Movement[]>;
+}
+
+export interface ISettingsService {
+  get(): Promise<UserSettings>;
+  update(input: UpdateSettingsInput): Promise<UserSettings>;
 }
 
 export interface IFinanceService {
@@ -98,4 +105,5 @@ export interface IFinanceService {
   categories: ICategoryService;
   goals: IGoalService;
   obligations: IObligationService;
+  settings: ISettingsService;
 }

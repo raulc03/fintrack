@@ -10,8 +10,8 @@ vi.mock("next/link", () => ({
 import { ObligationsSummary } from "./obligations-summary";
 
 const mockObligations: Obligation[] = [
-  { id: "ob1", name: "Rent", categoryId: "cat-1", estimatedAmount: 1200, currency: "USD", dueDay: 1, isPaid: true, manuallyPaid: false, linkedMovementId: "mov-1", isActive: true, createdAt: "", updatedAt: "" },
-  { id: "ob2", name: "Netflix", categoryId: "cat-2", estimatedAmount: 15, currency: "USD", dueDay: 25, isPaid: false, manuallyPaid: false, isActive: true, createdAt: "", updatedAt: "" },
+  { id: "ob1", name: "Rent", categoryId: "cat-1", estimatedAmount: 1200, currency: "USD", dueDay: 1, isPaid: true, linkedMovementId: "mov-1", linkedMovementAmount: 1200, isActive: true, createdAt: "", updatedAt: "" },
+  { id: "ob2", name: "Netflix", categoryId: "cat-2", estimatedAmount: 15, currency: "USD", dueDay: 25, isPaid: false, isActive: true, createdAt: "", updatedAt: "" },
 ];
 
 const mockSummaries: ObligationSummary[] = [

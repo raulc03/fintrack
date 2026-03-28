@@ -21,3 +21,10 @@ export function formatCurrency(amount: number, currency: Currency): string {
 export function getCurrencySymbol(currency: Currency): string {
   return currency === "USD" ? "$" : "S/";
 }
+
+export function convertCurrency(amount: number, from: Currency, to: Currency, usdToPenRate: number): number {
+  if (from === to) return amount;
+  if (from === "USD" && to === "PEN") return amount * usdToPenRate;
+  if (from === "PEN" && to === "USD") return amount / usdToPenRate;
+  return amount;
+}

@@ -106,7 +106,9 @@ export function GoalCardCreate({
             onValueChange={(v) => v && v !== "__none__" && setCategoryId(v)}
           >
             <SelectTrigger className="h-7 text-xs">
-              <SelectValue placeholder="Select category" />
+              <SelectValue placeholder="Select category">
+                {expenseCategories.find((c) => c.id === categoryId)?.name ?? "Select category"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__" disabled>Select category</SelectItem>

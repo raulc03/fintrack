@@ -66,6 +66,7 @@ export const ROUTES = {
   CATEGORIES: "/categories",
   GOALS: "/goals",
   OBLIGATIONS: "/obligations",
+  SETTINGS: "/settings",
   LOGIN: "/auth/login",
   SIGNUP: "/auth/signup",
 } as const;

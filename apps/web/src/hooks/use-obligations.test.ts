@@ -2,8 +2,8 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import type { Obligation, ObligationSummary } from "@finance/types";
 
 const mockObligations: Obligation[] = [
-  { id: "ob1", name: "Rent", categoryId: "cat-1", estimatedAmount: 1200, currency: "USD", dueDay: 1, isPaid: true, manuallyPaid: false, linkedMovementId: "mov-1", isActive: true, createdAt: "", updatedAt: "" },
-  { id: "ob2", name: "Netflix", categoryId: "cat-2", estimatedAmount: 15, currency: "USD", dueDay: 25, isPaid: false, manuallyPaid: false, isActive: true, createdAt: "", updatedAt: "" },
+  { id: "ob1", name: "Rent", categoryId: "cat-1", estimatedAmount: 1200, currency: "USD", dueDay: 1, isPaid: true, linkedMovementId: "mov-1", linkedMovementAmount: 1200, isActive: true, createdAt: "", updatedAt: "" },
+  { id: "ob2", name: "Netflix", categoryId: "cat-2", estimatedAmount: 15, currency: "USD", dueDay: 25, isPaid: false, isActive: true, createdAt: "", updatedAt: "" },
 ];
 
 const mockSummaries: ObligationSummary[] = [
@@ -13,11 +13,11 @@ const mockSummaries: ObligationSummary[] = [
 const mockService = vi.hoisted(() => ({
   getAll: vi.fn(),
   getSummary: vi.fn(),
+  getAvailableMovements: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
   link: vi.fn(),
-  togglePaid: vi.fn(),
 }));
 
 vi.mock("@finance/services", () => ({
@@ -33,6 +33,7 @@ describe("useObligations", () => {
     vi.clearAllMocks();
     mockService.getAll.mockResolvedValue([...mockObligations]);
     mockService.getSummary.mockResolvedValue([...mockSummaries]);
+    mockService.getAvailableMovements.mockResolvedValue([]);
   });
 
   it("fetches obligations and summaries on mount", async () => {
@@ -43,7 +44,7 @@ describe("useObligations", () => {
   });
 
   it("create calls service and refetches", async () => {
-    const newOb: Obligation = { id: "ob3", name: "Insurance", categoryId: "cat-3", estimatedAmount: 400, currency: "USD", dueDay: 28, isPaid: false, manuallyPaid: false, isActive: true, createdAt: "", updatedAt: "" };
+    const newOb: Obligation = { id: "ob3", name: "Insurance", categoryId: "cat-3", estimatedAmount: 400, currency: "USD", dueDay: 28, isPaid: false, isActive: true, createdAt: "", updatedAt: "" };
     mockService.create.mockResolvedValue(newOb);
 
     const { result } = renderHook(() => useObligations());
@@ -54,7 +55,7 @@ describe("useObligations", () => {
     });
 
     expect(mockService.create).toHaveBeenCalledTimes(1);
-    expect(mockService.getAll).toHaveBeenCalledTimes(2); // initial + refetch
+    expect(mockService.getAll).toHaveBeenCalledTimes(2);
   });
 
   it("remove calls service and refetches", async () => {

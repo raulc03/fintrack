@@ -20,10 +20,6 @@ class LinkMovementInput(BaseModel):
     movementId: str | None = None
 
 
-class TogglePaidInput(BaseModel):
-    manuallyPaid: bool
-
-
 class ObligationResponse(BaseModel):
     id: str
     name: str
@@ -32,8 +28,8 @@ class ObligationResponse(BaseModel):
     currency: str
     dueDay: int
     isPaid: bool
-    manuallyPaid: bool
     linkedMovementId: str | None = None
+    linkedMovementAmount: float | None = None
     isActive: bool
     createdAt: str
     updatedAt: str

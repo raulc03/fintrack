@@ -20,18 +20,23 @@ import { useMovements } from "@/hooks/use-movements";
 import { useGoals } from "@/hooks/use-goals";
 import { useCategories } from "@/hooks/use-categories";
 import { useObligations } from "@/hooks/use-obligations";
+import { useSettings } from "@/hooks/use-settings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { grid } from "@/lib/responsive";
 import { toast } from "sonner";
-import type { CreateMovementInput } from "@finance/types";
+import type { CreateMovementInput, Movement } from "@finance/types";
+import { MovementForm } from "@/components/movements/movement-form";
 
 export default function DashboardPage() {
   const { accounts, loading: accountsLoading, refetch: refetchAccounts } = useAccounts();
-  const { movements, loading: movementsLoading, create } = useMovements();
+  const { movements, loading: movementsLoading, create, update } = useMovements();
   const { goals, loading: goalsLoading, refetch: refetchGoals } = useGoals();
   const { categories } = useCategories();
   const { obligations, summaries: obligationSummaries, refetch: refetchObligations, link: linkObligation } = useObligations();
+  const { settings } = useSettings();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [editFormOpen, setEditFormOpen] = useState(false);
+  const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
   const [chartKey, setChartKey] = useState(0);
 
   const loading = accountsLoading || movementsLoading || goalsLoading;
@@ -74,10 +79,10 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <BalanceSummary accounts={accounts} />
-            <SpendingChart refreshKey={chartKey} />
+            <BalanceSummary accounts={accounts} settings={settings} />
+            <SpendingChart refreshKey={chartKey} defaultCurrency={settings.mainCurrency} />
             <div className={grid.split}>
-              <RecentMovements movements={movements} />
+              <RecentMovements movements={movements} onEdit={(m) => { setEditingMovement(m); setEditFormOpen(true); }} />
               <div className="space-y-4">
                 <ObligationsSummary obligations={obligations} summaries={obligationSummaries} />
                 <GoalsProgress goals={goals} />
@@ -88,6 +93,27 @@ export default function DashboardPage() {
         )}
       </div>
 
+      <MovementForm
+        open={editFormOpen}
+        onOpenChange={(open) => { setEditFormOpen(open); if (!open) setEditingMovement(null); }}
+        onSubmit={async (data) => {
+          if (!editingMovement) return;
+          try {
+            const { obligationId, exchangeRate, ...movementData } = data;
+            await update(editingMovement.id, movementData);
+            refetchAccounts();
+            refetchGoals();
+            refetchObligations();
+            setChartKey((k) => k + 1);
+            toast.success("Movement updated");
+          } catch {
+            toast.error("Failed to update movement");
+          }
+        }}
+        accounts={accounts}
+        categories={categories}
+        editingMovement={editingMovement}
+      />
       <QuickAddFab onClick={() => setQuickAddOpen(true)} />
       <QuickAddSheet
         open={quickAddOpen}

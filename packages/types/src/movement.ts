@@ -12,6 +12,8 @@ export interface Movement {
   accountId: string;
   destinationAccountId?: string;
   categoryId: string;
+  exchangeRate?: number;
+  destinationAmount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +26,7 @@ export interface CreateMovementInput {
   accountId: string;
   destinationAccountId?: string;
   categoryId: string;
+  exchangeRate?: number;
 }
 
 export interface MovementFilters {

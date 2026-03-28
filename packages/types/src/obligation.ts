@@ -8,8 +8,8 @@ export interface Obligation {
   currency: Currency;
   dueDay: number;
   isPaid: boolean;
-  manuallyPaid: boolean;
   linkedMovementId?: string;
+  linkedMovementAmount?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

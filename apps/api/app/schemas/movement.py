@@ -9,6 +9,7 @@ class CreateMovementInput(BaseModel):
     accountId: str
     destinationAccountId: str | None = None
     categoryId: str
+    exchangeRate: float | None = None
 
 
 class UpdateMovementInput(BaseModel):
@@ -31,6 +32,8 @@ class MovementResponse(BaseModel):
     accountId: str
     destinationAccountId: str | None = None
     categoryId: str
+    exchangeRate: float | None = None
+    destinationAmount: float | None = None
     createdAt: str
     updatedAt: str
 

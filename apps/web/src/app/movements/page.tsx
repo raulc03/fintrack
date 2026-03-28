@@ -13,10 +13,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
-import type { MovementType, MovementFilters as Filters } from "@finance/types";
+import type { Movement, MovementType, MovementFilters as Filters } from "@finance/types";
 
 export default function MovementsPage() {
   const [formOpen, setFormOpen] = useState(false);
+  const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
   const [filters, setFilters] = useState<{
     type?: MovementType;
     accountId?: string;
@@ -40,8 +41,8 @@ export default function MovementsPage() {
     [filters]
   );
 
-  const { movements, loading, create, remove } = useMovements(apiFilters);
-  const { accounts } = useAccounts();
+  const { movements, loading, create, update, remove } = useMovements(apiFilters);
+  const { accounts, refetch: refetchAccounts } = useAccounts();
   const { categories } = useCategories();
   const { obligations, link: linkObligation } = useObligations();
 
@@ -63,16 +64,44 @@ export default function MovementsPage() {
     }
   };
 
+  const handleEdit = async (data: Parameters<typeof create>[0] & { obligationId?: string }) => {
+    if (!editingMovement) return;
+    try {
+      const { obligationId, exchangeRate, ...movementData } = data;
+      await update(editingMovement.id, movementData);
+      refetchAccounts();
+      toast.success("Movement updated");
+    } catch {
+      toast.error("Failed to update movement");
+    }
+  };
+
   const handleDelete = async (id: string) => {
-    await remove(id);
-    toast.success("Movement deleted");
+    if (!confirm("Delete this movement?")) return;
+    try {
+      await remove(id);
+      refetchAccounts();
+      toast.success("Movement deleted");
+    } catch {
+      toast.error("Failed to delete movement");
+    }
+  };
+
+  const openEdit = (movement: Movement) => {
+    setEditingMovement(movement);
+    setFormOpen(true);
+  };
+
+  const handleFormClose = (open: boolean) => {
+    setFormOpen(open);
+    if (!open) setEditingMovement(null);
   };
 
   return (
     <>
       <Header
         title="Movements"
-        onAddClick={() => setFormOpen(true)}
+        onAddClick={() => { setEditingMovement(null); setFormOpen(true); }}
         addLabel="New Movement"
       />
       <div className="p-4 md:p-6 space-y-4">
@@ -103,6 +132,7 @@ export default function MovementsPage() {
               <MovementTable
                 movements={movements}
                 categories={categories}
+                onEdit={openEdit}
                 onDelete={handleDelete}
               />
             )}
@@ -112,11 +142,12 @@ export default function MovementsPage() {
 
       <MovementForm
         open={formOpen}
-        onOpenChange={setFormOpen}
-        onSubmit={handleCreate}
+        onOpenChange={handleFormClose}
+        onSubmit={editingMovement ? handleEdit : handleCreate}
         accounts={accounts}
         categories={categories}
         obligations={obligations}
+        editingMovement={editingMovement}
       />
     </>
   );
