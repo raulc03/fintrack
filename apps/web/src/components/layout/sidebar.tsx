@@ -20,8 +20,9 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
     <div className="p-2 border-t border-border">
       <button
         onClick={logout}
+        aria-label="Log out"
         className={cn(
-          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 w-full text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground cursor-pointer",
+          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200 w-full text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground cursor-pointer",
           collapsed && "justify-center"
         )}
       >
@@ -39,7 +40,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col border-r border-border bg-sidebar h-screen sticky top-0 transition-all duration-200",
+        "hidden md:flex flex-col border-r border-border bg-sidebar h-screen sticky top-0 transition-[width] duration-200",
         collapsed ? "w-16" : "w-56"
       )}
     >
@@ -59,6 +60,7 @@ export function Sidebar() {
           size="icon"
           className="h-8 w-8 text-sidebar-foreground"
           onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
             <PanelLeft className="h-4 w-4" />
@@ -80,7 +82,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200",
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-primary"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground border-l-2 border-transparent"

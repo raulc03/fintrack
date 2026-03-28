@@ -48,12 +48,12 @@ export function GoalsProgress({ goals }: GoalsProgressProps) {
                 <div key={g.id} className="space-y-2 py-4 first:pt-0 last:pb-0">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">{g.name}</span>
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className="text-xs font-medium text-muted-foreground tabular-nums">
                       {progress.toFixed(0)}%
                     </span>
                   </div>
                   <Progress value={progress} className="progress-gradient-green" />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
                     <span>{formatCurrency(g.currentAmount, g.currency)}</span>
                     <span>{formatCurrency(g.targetAmount, g.currency)}</span>
                   </div>

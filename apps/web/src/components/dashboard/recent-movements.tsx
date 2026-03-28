@@ -6,13 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency";
 import { MOVEMENT_TYPE_CONFIG } from "@/lib/constants";
-import { format } from "date-fns";
+
+const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "2-digit" });
 
 interface RecentMovementsProps {
   movements: Movement[];
+  onEdit?: (movement: Movement) => void;
 }
 
-export function RecentMovements({ movements }: RecentMovementsProps) {
+export function RecentMovements({ movements, onEdit }: RecentMovementsProps) {
   const recent = movements.slice(0, 7);
 
   return (
@@ -41,7 +43,8 @@ export function RecentMovements({ movements }: RecentMovementsProps) {
               return (
                 <div
                   key={m.id}
-                  className="flex items-center justify-between"
+                  className={`flex items-center justify-between ${onEdit ? "cursor-pointer hover:bg-accent/50 -mx-2 px-2 py-1 rounded-lg transition-colors" : ""}`}
+                  onClick={() => onEdit?.(m)}
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -52,7 +55,7 @@ export function RecentMovements({ movements }: RecentMovementsProps) {
                     <div>
                       <p className="text-sm font-medium">{m.description}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(m.date), "MMM dd")}
+                        {dateFormatter.format(new Date(m.date))}
                       </p>
                     </div>
                   </div>

@@ -50,31 +50,36 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="space-y-4">
-            <label className="text-sm font-medium">Email</label>
+          <div className="space-y-2">
+            <label htmlFor="login-email" className="text-sm font-medium">Email</label>
             <Input
+              id="login-email"
               type="email"
-              placeholder="you@example.com"
+              placeholder="you@example.com&#8230;"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               autoFocus
+              autoComplete="email"
+              spellCheck={false}
             />
           </div>
 
-          <div className="space-y-4">
-            <label className="text-sm font-medium">Password</label>
+          <div className="space-y-2">
+            <label htmlFor="login-password" className="text-sm font-medium">Password</label>
             <Input
+              id="login-password"
               type="password"
-              placeholder="Enter your password"
+              placeholder="Enter your password&#8230;"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Signing in\u2026" : "Sign In"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">

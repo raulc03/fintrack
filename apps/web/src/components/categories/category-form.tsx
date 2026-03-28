@@ -17,6 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getCategoryIcon } from "@/lib/category-icons";
+import { CATEGORY_COLORS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 const ICONS = [
   "shopping-cart",
@@ -35,21 +38,6 @@ const ICONS = [
   "gift",
   "music",
   "phone",
-];
-
-const COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#f59e0b",
-  "#22c55e",
-  "#10b981",
-  "#06b6d4",
-  "#3b82f6",
-  "#6366f1",
-  "#8b5cf6",
-  "#a855f7",
-  "#ec4899",
-  "#14b8a6",
 ];
 
 interface CategoryFormProps {
@@ -73,7 +61,7 @@ export function CategoryForm({
   const [name, setName] = useState("");
   const [type, setType] = useState<CategoryType>(defaultType);
   const [icon, setIcon] = useState(ICONS[0]);
-  const [color, setColor] = useState(COLORS[0]);
+  const [color, setColor] = useState(CATEGORY_COLORS[0]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,20 +70,38 @@ export function CategoryForm({
     setName("");
     setType(defaultType);
     setIcon(ICONS[0]);
-    setColor(COLORS[0]);
+    setColor(CATEGORY_COLORS[0]);
     onOpenChange(false);
   };
+
+  const SelectedIcon = getCategoryIcon(icon);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Category</DialogTitle>
+          <DialogTitle>New Category</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-4">
-            <label className="text-sm font-medium">Name</label>
+          {/* Preview */}
+          <div className="flex justify-center py-2">
+            <div className="flex flex-col items-center gap-2">
+              <div
+                className="size-16 rounded-full flex items-center justify-center transition-colors"
+                style={{ backgroundColor: color }}
+              >
+                <SelectedIcon className="size-7 text-white" />
+              </div>
+              <span className="text-sm font-medium">
+                {name.trim() || "Category Name"}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="category-name" className="text-sm font-medium">Name</label>
             <Input
+              id="category-name"
               placeholder="e.g. Subscriptions"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -103,13 +109,13 @@ export function CategoryForm({
             />
           </div>
 
-          <div className="space-y-4">
-            <label className="text-sm font-medium">Type</label>
+          <div className="space-y-2">
+            <label htmlFor="category-type" className="text-sm font-medium">Type</label>
             <Select
               value={type}
               onValueChange={(v) => v && setType(v as CategoryType)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="category-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -119,36 +125,46 @@ export function CategoryForm({
             </Select>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Icon</label>
-            <Select value={icon} onValueChange={(v) => v && setIcon(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ICONS.map((i) => (
-                  <SelectItem key={i} value={i}>
-                    {i}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-2">
+              {ICONS.map((i) => {
+                const Icon = getCategoryIcon(i);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={cn(
+                      "size-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer",
+                      icon === i
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    )}
+                    onClick={() => setIcon(i)}
+                    aria-label={i}
+                  >
+                    <Icon className="size-4" />
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Color</label>
             <div className="flex flex-wrap gap-2">
-              {COLORS.map((c) => (
+              {CATEGORY_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
-                  className="w-7 h-7 rounded-full transition-transform hover:scale-110"
+                  className="size-7 rounded-full transition-transform hover:scale-110 cursor-pointer"
                   style={{
                     backgroundColor: c,
                     outline: color === c ? "2px solid white" : "none",
                     outlineOffset: "2px",
                   }}
                   onClick={() => setColor(c)}
+                  aria-label={`Color ${c}`}
                 />
               ))}
             </div>
@@ -162,7 +178,7 @@ export function CategoryForm({
             >
               Cancel
             </Button>
-            <Button type="submit">Create</Button>
+            <Button type="submit">Create Category</Button>
           </div>
         </form>
       </DialogContent>

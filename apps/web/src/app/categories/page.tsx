@@ -3,18 +3,18 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { useCategories } from "@/hooks/use-categories";
-import { CategoryRowCreate } from "@/components/categories/category-row-create";
+import { CategoryForm } from "@/components/categories/category-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trash2, Tag } from "lucide-react";
+import { getCategoryIcon } from "@/lib/category-icons";
 import { toast } from "sonner";
-import type { CategoryType, CreateCategoryInput } from "@finance/types";
+import type { Category, CategoryType, CreateCategoryInput } from "@finance/types";
 
 export default function CategoriesPage() {
   const { categories, loading, create, remove } = useCategories();
-  const [creating, setCreating] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("expense");
 
   const expenseCategories = categories.filter((c) => c.type === "expense");
@@ -22,7 +22,6 @@ export default function CategoriesPage() {
 
   const handleCreate = async (data: CreateCategoryInput) => {
     await create(data);
-    setCreating(false);
     toast.success("Category created");
   };
 
@@ -35,14 +34,17 @@ export default function CategoriesPage() {
     <>
       <Header
         title="Categories"
-        onAddClick={() => setCreating(true)}
+        onAddClick={() => setFormOpen(true)}
         addLabel="New Category"
       />
       <div className="p-4 md:p-6">
         {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-12" />
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 12 }, (_, i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <Skeleton className="size-14 rounded-full" />
+                <Skeleton className="h-3 w-16" />
+              </div>
             ))}
           </div>
         ) : (
@@ -57,30 +59,22 @@ export default function CategoriesPage() {
             </TabsList>
 
             <TabsContent value="expense" className="mt-4">
-              <CategoryList
+              <CategoryGrid
                 categories={expenseCategories}
                 onDelete={handleDelete}
-                creating={creating && activeTab === "expense"}
-                onCreateSave={handleCreate}
-                onCreateCancel={() => setCreating(false)}
-                createType="expense"
               />
             </TabsContent>
 
             <TabsContent value="income" className="mt-4">
-              <CategoryList
+              <CategoryGrid
                 categories={incomeCategories}
                 onDelete={handleDelete}
-                creating={creating && activeTab === "income"}
-                onCreateSave={handleCreate}
-                onCreateCancel={() => setCreating(false)}
-                createType="income"
               />
             </TabsContent>
           </Tabs>
         )}
 
-        {!loading && categories.length === 0 && !creating && (
+        {!loading && categories.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Tag className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">No categories yet</h3>
@@ -90,64 +84,64 @@ export default function CategoriesPage() {
           </div>
         )}
       </div>
+
+      <CategoryForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        onSubmit={handleCreate}
+        defaultType={activeTab as CategoryType}
+      />
     </>
   );
 }
 
-function CategoryList({
+function CategoryGrid({
   categories,
   onDelete,
-  creating,
-  onCreateSave,
-  onCreateCancel,
-  createType,
 }: {
-  categories: ReturnType<typeof useCategories>["categories"];
+  categories: Category[];
   onDelete: (id: string, name: string) => void;
-  creating: boolean;
-  onCreateSave: (data: CreateCategoryInput) => void;
-  onCreateCancel: () => void;
-  createType: CategoryType;
 }) {
+  if (categories.length === 0) {
+    return (
+      <p className="text-muted-foreground text-sm py-8 text-center">
+        No categories in this type yet.
+      </p>
+    );
+  }
+
   return (
-    <div className="space-y-2">
-      {creating && (
-        <CategoryRowCreate
-          type={createType}
-          onSave={onCreateSave}
-          onCancel={onCreateCancel}
-        />
-      )}
-      {categories.length === 0 && !creating && (
-        <p className="text-muted-foreground text-sm py-8 text-center">
-          No categories in this type yet.
-        </p>
-      )}
-      {categories.map((cat) => (
-        <Card key={cat.id}>
-          <CardContent className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: cat.color }}
-              />
-              <span className="font-medium text-sm">{cat.name}</span>
-              {cat.isDefault && (
-                <span className="text-xs text-muted-foreground">(default)</span>
-              )}
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+      {categories.map((cat) => {
+        const Icon = getCategoryIcon(cat.icon);
+        return (
+          <div
+            key={cat.id}
+            className="group relative flex flex-col items-center gap-2 py-2"
+          >
+            <div
+              className="size-14 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: cat.color }}
+            >
+              <Icon className="size-6 text-white" />
             </div>
+            <span className="text-xs font-medium text-center truncate w-full px-1">
+              {cat.name}
+            </span>
             {!cat.isDefault && (
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
+                className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 rounded-full"
                 onClick={() => onDelete(cat.id, cat.name)}
+                aria-label={`Delete ${cat.name}`}
               >
-                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                <Trash2 className="size-3.5 text-muted-foreground" />
               </Button>
             )}
-          </CardContent>
-        </Card>
-      ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
