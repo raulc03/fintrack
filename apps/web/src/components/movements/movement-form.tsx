@@ -6,6 +6,7 @@ import { useSettings } from "@/hooks/use-settings";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { filterCategoriesByType } from "@/lib/constants";
+import { filterCategoriesByType, resolveMovementCategoryId } from "@/lib/constants";
 import { formatCurrency } from "@/lib/currency";
 
 interface MovementFormProps {
@@ -92,6 +93,7 @@ export function MovementForm({
   const { settings } = useSettings();
 
   const filteredCategories = filterCategoriesByType(categories, type);
+  const resolvedCategoryId = resolveMovementCategoryId(categories, type, categoryId);
   const unpaidObligations = obligations.filter((o) => !o.isPaid);
 
   const sourceAccount = useMemo(() => accounts.find((a) => a.id === accountId), [accounts, accountId]);
@@ -125,6 +127,7 @@ export function MovementForm({
     if (!accountId) newErrors.account = "Account is required";
     if (type === "transfer" && !destinationAccountId) newErrors.destination = "Destination account is required";
     if (isCrossCurrency && (!exchangeRate || parseFloat(exchangeRate) <= 0)) newErrors.exchangeRate = "Exchange rate is required";
+    if (type === "transfer" && !resolvedCategoryId) newErrors.category = "Transfer category is required";
     if (type !== "transfer" && !categoryId) newErrors.category = "Category is required";
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -139,7 +142,7 @@ export function MovementForm({
       accountId,
       destinationAccountId:
         type === "transfer" ? destinationAccountId : undefined,
-      categoryId,
+      categoryId: resolvedCategoryId,
       obligationId: type === "expense" && obligationId ? obligationId : undefined,
       exchangeRate: isCrossCurrency ? parseFloat(exchangeRate) : undefined,
     });
@@ -155,11 +158,11 @@ export function MovementForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-xl p-0">
+        <DialogHeader className="border-b border-border/60 px-6 pt-6 pb-4">
           <DialogTitle>{isEditing ? "Edit Movement" : "New Movement"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6 px-6 py-5">
           {/* Type */}
           <Tabs
             value={type}
@@ -168,24 +171,26 @@ export function MovementForm({
               setCategoryId("");
               setObligationId("");
             }}
+            className="gap-3"
           >
-            <TabsList className={`w-full ${isEditing ? "pointer-events-none opacity-60" : ""}`}>
-              <TabsTrigger value="expense" className="flex-1">Expense</TabsTrigger>
-              <TabsTrigger value="income" className="flex-1">Income</TabsTrigger>
-              <TabsTrigger value="transfer" className="flex-1">Transfer</TabsTrigger>
+            <TabsList className={`w-full h-10 rounded-xl p-1 ${isEditing ? "pointer-events-none opacity-60" : ""}`}>
+              <TabsTrigger value="expense" className="flex-1 rounded-lg">Expense</TabsTrigger>
+              <TabsTrigger value="income" className="flex-1 rounded-lg">Income</TabsTrigger>
+              <TabsTrigger value="transfer" className="flex-1 rounded-lg">Transfer</TabsTrigger>
             </TabsList>
           </Tabs>
 
           {/* Amount + Date */}
-          <div className="grid grid-cols-[1fr_auto] gap-3">
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1.4fr)_minmax(180px,0.8fr)]">
             <div className="space-y-2">
               <label htmlFor="movement-amount" className="text-sm font-medium">Amount</label>
               <AmountInput
                 id="movement-amount"
-                placeholder="0.00\u2026"
+                placeholder="0.00"
                 value={amount}
                 onChange={setAmount}
                 required
+                className="h-11 text-base"
               />
               {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
             </div>
@@ -197,7 +202,7 @@ export function MovementForm({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
-                className="w-[130px] [color-scheme:dark]"
+                className="h-11 w-full [color-scheme:dark]"
               />
             </div>
           </div>
@@ -207,24 +212,30 @@ export function MovementForm({
             <label htmlFor="movement-description" className="text-sm font-medium">Description</label>
             <Input
               id="movement-description"
-              placeholder="What was this for?\u2026"
+              placeholder="What was this for?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
+              className="h-11"
             />
             {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
           </div>
 
           {/* Account + Category (expense/income) or From + To (transfer) */}
           {type === "transfer" ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+              <div className="mb-4">
+                <p className="text-sm font-medium">Transfer details</p>
+                <p className="text-xs text-muted-foreground">Move money between accounts and add an exchange rate when currencies differ.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label htmlFor="movement-account" className="text-sm font-medium">From</label>
                 <Select
                   value={accountId}
                   onValueChange={(v) => { if (v) { setAccountId(v); if (v === destinationAccountId) setDestinationAccountId(""); } }}
                 >
-                  <SelectTrigger id="movement-account">
+                  <SelectTrigger id="movement-account" className="h-11 w-full">
                     <SelectValue placeholder="Account">
                       {sourceAccount?.name ?? "Account"}
                     </SelectValue>
@@ -243,7 +254,7 @@ export function MovementForm({
                   value={destinationAccountId}
                   onValueChange={(v) => v && setDestinationAccountId(v)}
                 >
-                  <SelectTrigger id="movement-dest-account">
+                  <SelectTrigger id="movement-dest-account" className="h-11 w-full">
                     <SelectValue placeholder="Account">
                       {destAccount?.name ?? "Account"}
                     </SelectValue>
@@ -256,16 +267,17 @@ export function MovementForm({
                 </Select>
                 {errors.destination && <p className="text-xs text-destructive">{errors.destination}</p>}
               </div>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label htmlFor="movement-account" className="text-sm font-medium">Account</label>
                 <Select
                   value={accountId}
                   onValueChange={(v) => v && setAccountId(v)}
                 >
-                  <SelectTrigger id="movement-account">
+                  <SelectTrigger id="movement-account" className="h-11 w-full">
                     <SelectValue placeholder="Select">
                       {sourceAccount?.name ?? "Select"}
                     </SelectValue>
@@ -284,7 +296,7 @@ export function MovementForm({
                   value={categoryId}
                   onValueChange={(v) => v && setCategoryId(v)}
                 >
-                  <SelectTrigger id="movement-category">
+                  <SelectTrigger id="movement-category" className="h-11 w-full">
                     <SelectValue placeholder="Select">
                       {filteredCategories.find((c) => c.id === categoryId)?.name ?? "Select"}
                     </SelectValue>
@@ -307,18 +319,22 @@ export function MovementForm({
 
           {/* Exchange rate (cross-currency transfer) */}
           {isCrossCurrency && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Exchange Rate</label>
+            <div className="space-y-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <div>
+                <label className="text-sm font-medium">Exchange Rate</label>
+                <p className="text-xs text-muted-foreground">Use the rate for this transfer so the destination amount is recorded correctly.</p>
+              </div>
               <AmountInput
                 value={exchangeRate}
                 onChange={setExchangeRate}
                 placeholder="e.g. 3.70"
+                className="h-11"
               />
               {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {sourceAccount?.currency} {amount} &times; {exchangeRate} = {destAccount?.currency}{" "}
+                <div className="rounded-lg bg-background/80 px-3 py-2 text-xs text-muted-foreground ring-1 ring-border/60">
+                  {sourceAccount?.currency} {amount} x {exchangeRate} = {destAccount?.currency}{" "}
                   {(parseFloat(amount) * parseFloat(exchangeRate)).toFixed(2)}
-                </p>
+                </div>
               )}
               {errors.exchangeRate && <p className="text-xs text-destructive">{errors.exchangeRate}</p>}
             </div>
@@ -332,7 +348,7 @@ export function MovementForm({
                 value={obligationId || "__none__"}
                 onValueChange={(v) => v && setObligationId(v === "__none__" ? "" : v)}
               >
-                <SelectTrigger id="movement-obligation">
+                <SelectTrigger id="movement-obligation" className="h-11 w-full">
                   <SelectValue placeholder="None">
                     {unpaidObligations.find((o) => o.id === obligationId)?.name ?? "None"}
                   </SelectValue>
@@ -347,12 +363,12 @@ export function MovementForm({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <DialogFooter className="-mx-6 -mb-5 border-t border-border/60 bg-muted/20 px-6 py-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">{isEditing ? "Save Changes" : "Create Movement"}</Button>
-          </div>
+            <Button type="submit" className="min-w-[152px]">{isEditing ? "Save Changes" : "Create Movement"}</Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

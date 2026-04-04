@@ -21,7 +21,6 @@ async def test_create_obligation(auth_client: AsyncClient):
     assert data["dueDay"] == 1
     assert data["currency"] == "USD"
     assert data["isActive"] is True
-    assert data["manuallyPaid"] is False
     assert data["isPaid"] is False  # no auto-detection, starts unpaid
 
 
@@ -80,9 +79,10 @@ async def test_summary(auth_client: AsyncClient):
     cats = await auth_client.get("/api/categories?type=expense")
     cat_id = cats.json()[0]["id"]
 
-    await auth_client.post("/api/accounts", json={
+    acct = await auth_client.post("/api/accounts", json={
         "name": "Checking", "currency": "USD", "initialBalance": 5000,
     })
+    acct_id = acct.json()["id"]
 
     ob1 = await auth_client.post("/api/obligations", json={
         "name": "Rent", "categoryId": cat_id, "estimatedAmount": 1200, "currency": "USD", "dueDay": 1,
@@ -93,8 +93,14 @@ async def test_summary(auth_client: AsyncClient):
         "name": "Netflix", "categoryId": cat_id, "estimatedAmount": 15, "currency": "USD", "dueDay": 25,
     })
 
-    # Mark rent as paid manually
-    await auth_client.patch(f"/api/obligations/{ob1_id}/toggle-paid", json={"manuallyPaid": True})
+    from datetime import datetime
+    mov = await auth_client.post("/api/movements", json={
+        "type": "expense", "amount": 1200, "description": "Rent payment",
+        "date": datetime.utcnow().isoformat(), "accountId": acct_id, "categoryId": cat_id,
+    })
+    mov_id = mov.json()["id"]
+
+    await auth_client.patch(f"/api/obligations/{ob1_id}/link", json={"movementId": mov_id})
 
     res = await auth_client.get("/api/obligations/summary")
     assert res.status_code == 200
@@ -175,38 +181,48 @@ async def test_update_obligation(auth_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_toggle_paid(auth_client: AsyncClient):
+async def test_link_and_unlink_obligation(auth_client: AsyncClient):
     cats = await auth_client.get("/api/categories?type=expense")
     cat_id = cats.json()[0]["id"]
+
+    acct = await auth_client.post("/api/accounts", json={
+        "name": "Checking", "currency": "USD", "initialBalance": 5000,
+    })
+    acct_id = acct.json()["id"]
 
     ob = await auth_client.post("/api/obligations", json={
         "name": "Netflix", "categoryId": cat_id, "estimatedAmount": 15, "currency": "USD", "dueDay": 25,
     })
     ob_id = ob.json()["id"]
     assert ob.json()["isPaid"] is False
-    assert ob.json()["manuallyPaid"] is False
 
-    # Toggle to paid
-    res = await auth_client.patch(f"/api/obligations/{ob_id}/toggle-paid", json={"manuallyPaid": True})
+    from datetime import datetime
+    mov = await auth_client.post("/api/movements", json={
+        "type": "expense", "amount": 15, "description": "Netflix payment",
+        "date": datetime.utcnow().isoformat(), "accountId": acct_id, "categoryId": cat_id,
+    })
+    mov_id = mov.json()["id"]
+
+    res = await auth_client.patch(f"/api/obligations/{ob_id}/link", json={"movementId": mov_id})
     assert res.status_code == 200
     assert res.json()["isPaid"] is True
-    assert res.json()["manuallyPaid"] is True
+    assert res.json()["linkedMovementId"] == mov_id
 
-    # Toggle back to unpaid
-    res = await auth_client.patch(f"/api/obligations/{ob_id}/toggle-paid", json={"manuallyPaid": False})
+    res = await auth_client.patch(f"/api/obligations/{ob_id}/link", json={"movementId": None})
     assert res.status_code == 200
     assert res.json()["isPaid"] is False
-    assert res.json()["manuallyPaid"] is False
+    assert res.json()["linkedMovementId"] is None
 
 
 @pytest.mark.asyncio
-async def test_toggle_paid_updates_summary(auth_client: AsyncClient):
+async def test_link_updates_summary(auth_client: AsyncClient):
     cats = await auth_client.get("/api/categories?type=expense")
     cat_id = cats.json()[0]["id"]
 
-    await auth_client.post("/api/accounts", json={
+    acct = await auth_client.post("/api/accounts", json={
         "name": "Checking", "currency": "USD", "initialBalance": 5000,
     })
+    acct_id = acct.json()["id"]
 
     ob = await auth_client.post("/api/obligations", json={
         "name": "Netflix", "categoryId": cat_id, "estimatedAmount": 15, "currency": "USD", "dueDay": 25,
@@ -217,10 +233,16 @@ async def test_toggle_paid_updates_summary(auth_client: AsyncClient):
     summary = await auth_client.get("/api/obligations/summary")
     assert summary.json()[0]["pendingAmount"] == 15
 
-    # Toggle to paid
-    await auth_client.patch(f"/api/obligations/{ob_id}/toggle-paid", json={"manuallyPaid": True})
+    from datetime import datetime
+    mov = await auth_client.post("/api/movements", json={
+        "type": "expense", "amount": 15, "description": "Netflix payment",
+        "date": datetime.utcnow().isoformat(), "accountId": acct_id, "categoryId": cat_id,
+    })
+    mov_id = mov.json()["id"]
 
-    # After toggle: should be paid
+    await auth_client.patch(f"/api/obligations/{ob_id}/link", json={"movementId": mov_id})
+
+    # After linking: should be paid
     summary = await auth_client.get("/api/obligations/summary")
     assert summary.json()[0]["paidAmount"] == 15
     assert summary.json()[0]["pendingAmount"] == 0

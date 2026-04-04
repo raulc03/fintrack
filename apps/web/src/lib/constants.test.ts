@@ -1,4 +1,4 @@
-import { filterCategoriesByType, getBalanceColorClass } from "./constants";
+import { filterCategoriesByType, getBalanceColorClass, resolveMovementCategoryId } from "./constants";
 import type { Category } from "@finance/types";
 
 const mockCategories: Category[] = [
@@ -44,5 +44,19 @@ describe("getBalanceColorClass", () => {
 
   it("returns muted for zero", () => {
     expect(getBalanceColorClass(0)).toBe("text-muted-foreground");
+  });
+});
+
+describe("resolveMovementCategoryId", () => {
+  it("returns the selected category for non-transfer movements", () => {
+    expect(resolveMovementCategoryId(mockCategories, "expense", "c1")).toBe("c1");
+  });
+
+  it("returns the Transfer category for transfers", () => {
+    expect(resolveMovementCategoryId(mockCategories, "transfer", "")).toBe("c4");
+  });
+
+  it("returns an empty string when the Transfer category is missing", () => {
+    expect(resolveMovementCategoryId(mockCategories.slice(0, 3), "transfer", "")).toBe("");
   });
 });

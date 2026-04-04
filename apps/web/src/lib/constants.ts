@@ -102,6 +102,15 @@ export function filterCategoriesByType(
   return categories.filter((c) => c.type === type);
 }
 
+export function resolveMovementCategoryId(
+  categories: Category[],
+  type: MovementType,
+  categoryId: string
+): string {
+  if (type !== "transfer") return categoryId;
+  return categories.find((category) => category.name === "Transfer")?.id ?? "";
+}
+
 /**
  * Get balance change color class.
  */

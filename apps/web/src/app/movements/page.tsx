@@ -59,8 +59,8 @@ export default function MovementsPage() {
         }
       }
       toast.success("Movement created");
-    } catch {
-      toast.error("Failed to create movement");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create movement");
     }
   };
 

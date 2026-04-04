@@ -31,7 +31,7 @@ import { Mic, MicOff, Keyboard, RotateCcw, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useSettings } from "@/hooks/use-settings";
-import { filterCategoriesByType } from "@/lib/constants";
+import { filterCategoriesByType, resolveMovementCategoryId } from "@/lib/constants";
 import { parseVoiceInput, type ParsedMovement } from "@/lib/voice-parser";
 import { formatCurrency } from "@/lib/currency";
 
@@ -68,6 +68,7 @@ export function QuickAddSheet({
 
   const speech = useSpeechRecognition();
   const filteredCategories = filterCategoriesByType(categories, type);
+  const resolvedCategoryId = resolveMovementCategoryId(categories, type, categoryId);
   const unpaidObligations = obligations.filter((o) => !o.isPaid);
   const defaultAccountId = accounts[0]?.id ?? "";
   const speechReset = speech.reset;
@@ -130,10 +131,10 @@ export function QuickAddSheet({
   const canSubmit =
     amount !== "" &&
     parseFloat(amount) > 0 &&
-    description.trim() !== "" &&
-    accountId !== "" &&
-    (type === "transfer"
-      ? destinationAccountId !== "" && (!isCrossCurrency || (exchangeRate !== "" && parseFloat(exchangeRate) > 0))
+      description.trim() !== "" &&
+      accountId !== "" &&
+      (type === "transfer"
+      ? resolvedCategoryId !== "" && destinationAccountId !== "" && (!isCrossCurrency || (exchangeRate !== "" && parseFloat(exchangeRate) > 0))
       : categoryId !== "");
 
   const handleSubmit = async () => {
@@ -147,14 +148,14 @@ export function QuickAddSheet({
         date: `${date}T12:00:00`,
         accountId,
         destinationAccountId: type === "transfer" ? destinationAccountId : undefined,
-        categoryId: type !== "transfer" ? categoryId : "",
+        categoryId: resolvedCategoryId,
         obligationId: type === "expense" && obligationId ? obligationId : undefined,
         exchangeRate: isCrossCurrency ? parseFloat(exchangeRate) : undefined,
       });
       toast.success("Movement created");
       onOpenChange(false);
-    } catch {
-      toast.error("Failed to create movement");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create movement");
     } finally {
       setIsSubmitting(false);
     }

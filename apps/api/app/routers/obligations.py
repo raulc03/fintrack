@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func
@@ -213,7 +214,8 @@ async def update_obligation(
 
     field_map = {"categoryId": "category_id", "estimatedAmount": "estimated_amount", "dueDay": "due_day"}
     for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(obligation, field_map.get(field, field), value)
+        target_field = cast(str, field_map.get(field, field))
+        setattr(obligation, target_field, value)
 
     await db.flush()
     return to_response(obligation)
