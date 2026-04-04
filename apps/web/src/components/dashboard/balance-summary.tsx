@@ -99,11 +99,11 @@ function SummaryCard({
         <div className="text-[1.35rem] font-semibold leading-none tabular-nums sm:text-xl">
           {value}
         </div>
-        <div className="mt-2 flex items-center gap-2 text-[11px] sm:mt-1 sm:gap-2 sm:text-[11px]">
-          <span className={`text-[11px] font-medium tabular-nums sm:text-xs ${changeColor(change)}`}>
+        <div className="mt-2 flex items-center gap-2 text-xs sm:mt-1 sm:gap-2 sm:text-[11px]">
+          <span className={`text-xs font-medium tabular-nums sm:text-xs ${changeColor(change)}`}>
             {changeLabel}
           </span>
-          <span className="text-[11px] text-muted-foreground sm:text-xs">
+          <span className="text-xs text-muted-foreground sm:text-xs">
             {meta}
           </span>
         </div>
