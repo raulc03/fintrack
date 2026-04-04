@@ -166,7 +166,7 @@ export function QuickAddSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[88vh] overflow-y-auto rounded-t-[28px] border-t border-border/60 p-0"
+        className="max-h-[76vh] overflow-y-auto rounded-t-[28px] border-t border-border/60 p-0 sm:max-h-[82vh]"
         showCloseButton={false}
       >
         <SheetHeader className="border-b border-border/60 px-4 pt-4 pb-4 sm:px-6">
@@ -429,17 +429,27 @@ export function QuickAddSheet({
         </div>
         {mode === "manual" && (
           <SheetFooter className="border-t border-border/60 bg-muted/20 px-4 py-4 sm:px-6">
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 sm:flex-row sm:justify-between">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground sm:self-center">
                 {type === "transfer" ? "Transfers use the dedicated Transfer category automatically." : "Quick add saves the movement immediately."}
               </p>
-              <Button
-                onClick={handleSubmit}
-                disabled={!canSubmit || isSubmitting}
-                className="w-full sm:min-w-[180px] sm:w-auto"
-              >
-                {isSubmitting ? "Creating..." : "Create Movement"}
-              </Button>
+              <div className="flex w-full gap-3 sm:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  className="flex-1 sm:flex-none"
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || isSubmitting}
+                  className="flex-1 sm:min-w-[180px] sm:flex-none"
+                >
+                  {isSubmitting ? "Creating..." : "Create Movement"}
+                </Button>
+              </div>
             </div>
           </SheetFooter>
         )}
