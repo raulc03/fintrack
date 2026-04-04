@@ -3,6 +3,7 @@
 import type { ObligationHistoryMonth } from "@finance/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/lib/currency";
 
 interface ObligationHistoryCardProps {
   history: ObligationHistoryMonth[];
