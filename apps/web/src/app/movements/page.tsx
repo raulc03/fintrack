@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header";
 import { MovementTable } from "@/components/movements/movement-table";
 import { MovementFilters } from "@/components/movements/movement-filters";
 import { MovementForm } from "@/components/movements/movement-form";
+import { MovementDetailsDialog } from "@/components/movements/movement-details-dialog";
 import { useMovements } from "@/hooks/use-movements";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useCategories } from "@/hooks/use-categories";
@@ -18,6 +19,7 @@ import type { Movement, MovementType, MovementFilters as Filters } from "@financ
 export default function MovementsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
+  const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   const [filters, setFilters] = useState<{
     type?: MovementType;
     accountId?: string;
@@ -76,10 +78,11 @@ export default function MovementsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this movement?")) return;
+  const handleDelete = async (movement: Movement) => {
+    if (!confirm(`Delete \"${movement.description}\"?`)) return;
     try {
-      await remove(id);
+      await remove(movement.id);
+      setSelectedMovement(null);
       refetchAccounts();
       toast.success("Movement deleted");
     } catch {
@@ -88,8 +91,13 @@ export default function MovementsPage() {
   };
 
   const openEdit = (movement: Movement) => {
+    setSelectedMovement(null);
     setEditingMovement(movement);
     setFormOpen(true);
+  };
+
+  const handleDetailsOpenChange = (open: boolean) => {
+    if (!open) setSelectedMovement(null);
   };
 
   const handleFormClose = (open: boolean) => {
@@ -132,8 +140,7 @@ export default function MovementsPage() {
               <MovementTable
                 movements={movements}
                 categories={categories}
-                onEdit={openEdit}
-                onDelete={handleDelete}
+                onSelect={setSelectedMovement}
               />
             )}
           </CardContent>
@@ -148,6 +155,16 @@ export default function MovementsPage() {
         categories={categories}
         obligations={obligations}
         editingMovement={editingMovement}
+      />
+
+      <MovementDetailsDialog
+        open={!!selectedMovement}
+        onOpenChange={handleDetailsOpenChange}
+        movement={selectedMovement}
+        accounts={accounts}
+        categories={categories}
+        onEdit={openEdit}
+        onDelete={handleDelete}
       />
     </>
   );

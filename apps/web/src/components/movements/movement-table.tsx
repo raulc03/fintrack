@@ -9,25 +9,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency";
 import { MOVEMENT_TYPE_CONFIG } from "@/lib/constants";
-import { Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface MovementTableProps {
   movements: Movement[];
   categories: Category[];
-  onEdit?: (movement: Movement) => void;
-  onDelete?: (id: string) => void;
+  onSelect?: (movement: Movement) => void;
 }
 
 export function MovementTable({
   movements,
   categories,
-  onEdit,
-  onDelete,
+  onSelect,
 }: MovementTableProps) {
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
@@ -40,16 +35,14 @@ export function MovementTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-    <Table>
+    <Table className="rounded-2xl border border-border/60 bg-card/40">
       <TableHeader>
         <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Type</TableHead>
+          <TableHead className="px-4">Date</TableHead>
+          <TableHead className="w-14 text-center">Type</TableHead>
           <TableHead>Description</TableHead>
           <TableHead className="hidden sm:table-cell">Category</TableHead>
-          <TableHead className="text-right">Amount</TableHead>
-          {(onEdit || onDelete) && <TableHead className="w-20" />}
+          <TableHead className="px-4 text-right">Amount</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -59,68 +52,62 @@ export function MovementTable({
           const category = categoryMap.get(m.categoryId);
 
           return (
-            <TableRow key={m.id}>
-              <TableCell className="text-muted-foreground whitespace-nowrap">
+            <TableRow
+              key={m.id}
+              className={onSelect ? "cursor-pointer" : undefined}
+              onClick={onSelect ? () => onSelect(m) : undefined}
+              onKeyDown={onSelect ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(m);
+                }
+              } : undefined}
+              tabIndex={onSelect ? 0 : undefined}
+            >
+              <TableCell className="px-4 text-muted-foreground whitespace-nowrap">
                 <span className="hidden sm:inline">{format(new Date(m.date), "MMM dd, yyyy")}</span>
                 <span className="sm:hidden">{format(new Date(m.date), "MM/dd")}</span>
               </TableCell>
-              <TableCell>
-                <span className={`flex items-center gap-1.5 ${config.color}`}>
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="text-xs">{config.label}</span>
+              <TableCell className="text-center">
+                <span
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-muted/60 ${config.color}`}
+                  title={config.label}
+                  aria-label={config.label}
+                >
+                  <Icon className="h-4 w-4" />
                 </span>
               </TableCell>
-              <TableCell className="font-medium max-w-[120px] sm:max-w-none truncate">{m.description}</TableCell>
+              <TableCell className="max-w-[120px] py-3 sm:max-w-none">
+                <div className="truncate font-medium text-foreground">{m.description}</div>
+              </TableCell>
               <TableCell className="hidden sm:table-cell">
                 {category && (
-                  <Badge
-                    variant="outline"
+                  <div
+                    className="inline-flex h-8 w-40 items-center gap-3 rounded-full border px-3"
                     style={{
                       borderColor: category.color,
                       color: category.color,
+                      backgroundColor: `${category.color}12`,
                     }}
                   >
-                    {category.name}
-                  </Badge>
+                    <span
+                      className="h-4 w-1.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    <span className="truncate text-xs font-medium">{category.name}</span>
+                  </div>
                 )}
               </TableCell>
               <TableCell
-                className={`text-right font-medium whitespace-nowrap ${config.color}`}
+                className={`px-4 text-right font-medium whitespace-nowrap ${config.color}`}
               >
                 {m.type === "expense" ? "-" : ""}
                 {formatCurrency(m.amount, m.currency)}
               </TableCell>
-              {(onEdit || onDelete) && (
-                <TableCell>
-                  <div className="flex gap-2">
-                    {onEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(m)}
-                        aria-label={`Edit ${m.description}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                      </Button>
-                    )}
-                    {onDelete && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onDelete(m.id)}
-                        aria-label={`Delete ${m.description}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              )}
             </TableRow>
           );
         })}
       </TableBody>
     </Table>
-    </div>
   );
 }
