@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Ellipsis, Target, Tag } from "lucide-react";
+import { Ellipsis, Receipt, Target, Tag, Wallet, LayoutDashboard, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_ITEMS, ROUTES } from "@/lib/constants";
+import { ROUTES } from "@/lib/constants";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,11 +12,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter((item) => item.href !== ROUTES.CATEGORIES && item.href !== ROUTES.GOALS);
+const PRIMARY_NAV_ITEMS = [
+  { href: ROUTES.HOME, label: "Dashboard", icon: LayoutDashboard },
+  { href: ROUTES.MOVEMENTS, label: "Movements", icon: ArrowLeftRight },
+  { href: ROUTES.OBLIGATIONS, label: "Bills", icon: Receipt },
+  { href: ROUTES.GOALS, label: "Goals", icon: Target },
+];
 
 const SECONDARY_NAV_ITEMS = [
+  { href: ROUTES.ACCOUNTS, label: "Accounts", icon: Wallet },
   { href: ROUTES.CATEGORIES, label: "Categories", icon: Tag },
-  { href: ROUTES.GOALS, label: "Goals", icon: Target },
 ];
 
 export function MobileNav() {
