@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useRef } from "react";
 import { X, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 
@@ -79,9 +78,9 @@ export function MovementFilters({
 
   return (
     <div className="space-y-2">
-      {/* Filters — single row on desktop, wraps on mobile */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg bg-muted p-0.5">
+      <div className="space-y-2">
+        <div className="pb-1">
+          <div className="grid w-full grid-cols-4 rounded-lg bg-muted p-0.5 sm:inline-flex sm:min-w-max sm:w-auto">
           {TYPES.map((t) => {
             const isActive =
               t.value === "all" ? !filters.type : filters.type === t.value;
@@ -94,7 +93,7 @@ export function MovementFilters({
                     type: t.value === "all" ? undefined : t.value,
                   })
                 }
-                className={`cursor-pointer rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                className={`cursor-pointer rounded-md px-3 py-1 text-center text-xs font-medium transition-colors ${
                   isActive
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -105,76 +104,79 @@ export function MovementFilters({
             );
           })}
         </div>
+        </div>
 
-        {/* Account filter */}
-        <Select
-          value={filters.accountId ?? "__all__"}
-          onValueChange={(v) =>
-            onFiltersChange({
-              ...filters,
-              accountId: v === "__all__" ? undefined : (v ?? undefined),
-            })
-          }
-        >
-          <SelectTrigger className="h-7 w-auto shrink-0 gap-1 rounded-full border-none bg-muted px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
-            <span>Account</span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All accounts</SelectItem>
-            {accounts.map((a) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <Select
+              value={filters.accountId ?? "__all__"}
+              onValueChange={(v) =>
+                onFiltersChange({
+                  ...filters,
+                  accountId: v === "__all__" ? undefined : (v ?? undefined),
+                })
+              }
+            >
+              <SelectTrigger className="h-9 w-full gap-1 rounded-xl border-none bg-muted px-3 text-xs font-medium text-muted-foreground hover:text-foreground sm:h-7 sm:w-auto sm:rounded-full">
+                <span>Account</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All accounts</SelectItem>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        {/* Category filter */}
-        <Select
-          value={filters.categoryId ?? "__all__"}
-          onValueChange={(v) =>
-            onFiltersChange({
-              ...filters,
-              categoryId: v === "__all__" ? undefined : (v ?? undefined),
-            })
-          }
-        >
-          <SelectTrigger className="h-7 w-auto shrink-0 gap-1 rounded-full border-none bg-muted px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
-            <span>Category</span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All categories</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                <span className="flex items-center gap-2">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: c.color }}
-                  />
-                  {c.name}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <Select
+              value={filters.categoryId ?? "__all__"}
+              onValueChange={(v) =>
+                onFiltersChange({
+                  ...filters,
+                  categoryId: v === "__all__" ? undefined : (v ?? undefined),
+                })
+              }
+            >
+              <SelectTrigger className="h-9 w-full gap-1 rounded-xl border-none bg-muted px-3 text-xs font-medium text-muted-foreground hover:text-foreground sm:h-7 sm:w-auto sm:rounded-full">
+                <span>Category</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All categories</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: c.color }}
+                      />
+                      {c.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Date from */}
-        <DatePickerPill
-          label="From"
-          value={filters.dateFrom}
-          onChange={(v) =>
-            onFiltersChange({ ...filters, dateFrom: v || undefined })
-          }
-        />
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <DatePickerPill
+              label="From"
+              value={filters.dateFrom}
+              onChange={(v) =>
+                onFiltersChange({ ...filters, dateFrom: v || undefined })
+              }
+            />
 
-        {/* Date to */}
-        <DatePickerPill
-          label="To"
-          value={filters.dateTo}
-          onChange={(v) =>
-            onFiltersChange({ ...filters, dateTo: v || undefined })
-          }
-        />
+            <DatePickerPill
+              label="To"
+              value={filters.dateTo}
+              onChange={(v) =>
+                onFiltersChange({ ...filters, dateTo: v || undefined })
+              }
+            />
+          </div>
+        </div>
       </div>
 
       {/* Active filter chips */}
@@ -214,40 +216,16 @@ function DatePickerPill({
   value?: string;
   onChange: (value: string) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleClick = () => {
-    const input = inputRef.current;
-    if (!input) return;
-    try {
-      input.showPicker();
-    } catch {
-      input.focus();
-      input.click();
-    }
-  };
-
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-muted px-3 py-1 hover:bg-muted/80 transition-colors cursor-pointer"
-    >
+    <label className="inline-flex h-9 w-full items-center gap-2 rounded-xl bg-muted px-3 text-xs text-muted-foreground transition-colors hover:bg-muted/80 sm:h-7 sm:w-auto sm:shrink-0 sm:gap-1.5 sm:rounded-full">
       <CalendarDays className="h-3 w-3 text-muted-foreground shrink-0" />
       <span className="text-xs text-muted-foreground">{label}</span>
-      {value && (
-        <span className="text-xs font-medium text-foreground">
-          {format(new Date(value), "MMM dd, yyyy")}
-        </span>
-      )}
       <input
-        ref={inputRef}
         type="date"
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
-        tabIndex={-1}
-        className="absolute opacity-0 pointer-events-none"
+        className="min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-foreground outline-none [color-scheme:dark] sm:w-[110px] sm:flex-none"
       />
-    </button>
+    </label>
   );
 }
