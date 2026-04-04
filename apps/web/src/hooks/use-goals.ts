@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { financeService } from "@finance/services";
 import type { Goal, CreateGoalInput, GoalAllocation, GoalHistory } from "@finance/types";
 
+const HISTORY_MONTHS = 24;
+
 export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [expenseLimitHistory, setExpenseLimitHistory] = useState<GoalHistory[]>([]);
@@ -15,7 +17,7 @@ export function useGoals() {
     try {
       const [data, history] = await Promise.all([
         financeService.goals.getAll(),
-        financeService.goals.getExpenseLimitHistory(),
+        financeService.goals.getExpenseLimitHistory(HISTORY_MONTHS),
       ]);
       setGoals(data);
       setExpenseLimitHistory(history);
@@ -62,7 +64,17 @@ export function useGoals() {
     return allocation;
   };
 
-  return { goals, expenseLimitHistory, loading, error, refetch: fetch, create, update, remove, allocate };
+  return {
+    goals,
+    expenseLimitHistory,
+    loading,
+    error,
+    refetch: fetch,
+    create,
+    update,
+    remove,
+    allocate,
+  };
 }
 
 export function useGoal(id: string) {

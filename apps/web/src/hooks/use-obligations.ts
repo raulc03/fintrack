@@ -1,37 +1,52 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { financeService } from "@finance/services";
 import type { Obligation, CreateObligationInput, UpdateObligationInput, ObligationSummary, ObligationHistoryMonth, Movement } from "@finance/types";
+
+const HISTORY_PAGE_SIZE = 6;
 
 export function useObligations() {
   const [obligations, setObligations] = useState<Obligation[]>([]);
   const [summaries, setSummaries] = useState<ObligationSummary[]>([]);
   const [history, setHistory] = useState<ObligationHistoryMonth[]>([]);
+  const [historyMonths, setHistoryMonths] = useState(HISTORY_PAGE_SIZE);
   const [availableMovements, setAvailableMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const hasLoadedRef = useRef(false);
 
   const fetch = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedRef.current) {
+      setLoading(true);
+    } else {
+      setLoadingMoreHistory(true);
+    }
     try {
       const [obData, sumData, movData, historyData] = await Promise.all([
         financeService.obligations.getAll(),
         financeService.obligations.getSummary(),
         financeService.obligations.getAvailableMovements(),
-        financeService.obligations.getHistory(),
+        financeService.obligations.getHistory(historyMonths),
       ]);
       setObligations(obData);
       setSummaries(sumData);
       setAvailableMovements(movData);
       setHistory(historyData);
       setError(null);
+      hasLoadedRef.current = true;
     } catch (e) {
       setError(e as Error);
     } finally {
-      setLoading(false);
+      if (!hasLoadedRef.current) {
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
+      setLoadingMoreHistory(false);
     }
-  }, []);
+  }, [historyMonths]);
 
   useEffect(() => {
     fetch();
@@ -60,5 +75,26 @@ export function useObligations() {
     return updated;
   };
 
-  return { obligations, summaries, history, availableMovements, loading, error, refetch: fetch, create, update, remove, link };
+  const loadMoreHistory = () => {
+    setHistoryMonths((current) => current + HISTORY_PAGE_SIZE);
+  };
+
+  const canLoadMoreHistory = history.length === historyMonths;
+
+  return {
+    obligations,
+    summaries,
+    history,
+    availableMovements,
+    loading,
+    loadingMoreHistory,
+    error,
+    canLoadMoreHistory,
+    loadMoreHistory,
+    refetch: fetch,
+    create,
+    update,
+    remove,
+    link,
+  };
 }

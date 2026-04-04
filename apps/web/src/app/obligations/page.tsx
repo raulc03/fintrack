@@ -33,7 +33,21 @@ import { getCoverageColorClass, getCoverageProgressClass, SUPPORTED_CURRENCIES }
 import type { Currency, CreateObligationInput, Movement } from "@finance/types";
 
 export default function ObligationsPage() {
-  const { obligations, summaries, history, availableMovements, loading, error, refetch, create, remove, link } = useObligations();
+  const {
+    obligations,
+    summaries,
+    history,
+    availableMovements,
+    loading,
+    loadingMoreHistory,
+    error,
+    refetch,
+    create,
+    remove,
+    link,
+    canLoadMoreHistory,
+    loadMoreHistory,
+  } = useObligations();
   const { categories } = useCategories("expense");
   const [creating, setCreating] = useState(false);
   const [linkingObligationId, setLinkingObligationId] = useState<string | null>(null);
@@ -222,7 +236,12 @@ export default function ObligationsPage() {
               </CardContent>
             </Card>
 
-            <ObligationHistoryCard history={history} />
+            <ObligationHistoryCard
+              history={history}
+              canLoadMore={canLoadMoreHistory}
+              loadingMore={loadingMoreHistory}
+              onLoadMore={loadMoreHistory}
+            />
           </>
         )}
       </div>
