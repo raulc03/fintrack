@@ -20,7 +20,7 @@ export function ObligationsSummary({ obligations, summaries }: ObligationsSummar
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-sm font-medium">Monthly Obligations</CardTitle>
         <Link
           href="/obligations"
@@ -29,11 +29,11 @@ export function ObligationsSummary({ obligations, summaries }: ObligationsSummar
           View all
         </Link>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <div className="divide-y divide-border">
           {summaries.map((s) => {
             return (
-              <div key={s.currency} className="py-3 first:pt-0 last:pb-0 space-y-3">
+              <div key={s.currency} className="space-y-2.5 py-2.5 first:pt-0 last:pb-0">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">{s.currency} Obligations</span>
                   <span className={`text-xs font-medium ${getCoverageColorClass(s.coveragePercent)}`}>
@@ -68,7 +68,7 @@ export function ObligationsSummary({ obligations, summaries }: ObligationsSummar
           })}
 
           {/* Individual obligations */}
-          <div className="pt-3 space-y-2">
+          <div className="hidden pt-3 space-y-2 sm:block">
             {obligations.slice(0, 5).map((o) => (
               <div key={o.id} className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2">
@@ -90,5 +90,4 @@ export function ObligationsSummary({ obligations, summaries }: ObligationsSummar
     </Card>
   );
 }
-
 

@@ -64,7 +64,7 @@ export default function DashboardPage() {
   return (
     <>
       <Header title="Dashboard" />
-      <div className="p-4 md:p-6 space-y-6 pb-24">
+      <div className="space-y-4 p-3 pb-24 md:space-y-6 md:p-6">
         {loading ? (
           <>
             <div className="grid gap-4 sm:grid-cols-2">

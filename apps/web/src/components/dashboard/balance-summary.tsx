@@ -12,9 +12,9 @@ interface BalanceSummaryProps {
 }
 
 function TrendIcon({ change }: { change: number }) {
-  if (change > 0) return <TrendingUp className="h-4 w-4 text-green-500" aria-hidden="true" />;
-  if (change < 0) return <TrendingDown className="h-4 w-4 text-red-500" aria-hidden="true" />;
-  return <Minus className="h-4 w-4 text-muted-foreground" aria-hidden="true" />;
+  if (change > 0) return <TrendingUp className="h-3.5 w-3.5 text-green-500 sm:h-4 sm:w-4" aria-hidden="true" />;
+  if (change < 0) return <TrendingDown className="h-3.5 w-3.5 text-red-500 sm:h-4 sm:w-4" aria-hidden="true" />;
+  return <Minus className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" aria-hidden="true" />;
 }
 
 function changeColor(change: number) {
@@ -49,53 +49,65 @@ export function BalanceSummary({ accounts, settings }: BalanceSummaryProps) {
   const rateLabel = `1 USD = ${getCurrencySymbol("PEN")} ${rate}`;
 
   return (
-    <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 stagger-children">
-      {data.map(({ currency, total, change, changePercent, count }) => (
-        <Card key={currency} className="border-border/60 bg-card/70">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              {currency} Total
-            </CardTitle>
-            <TrendIcon change={change} />
-          </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-lg font-semibold truncate tabular-nums sm:text-xl">
-              {formatCurrency(total, currency)}
-            </div>
-            <div className="mt-1 flex items-center gap-2 text-[11px]">
-              <span className={`text-xs font-medium tabular-nums ${changeColor(change)}`}>
-                {change > 0 ? "+" : ""}{changePercent.toFixed(1)}%
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {count} account{count !== 1 ? "s" : ""}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="-mx-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0 sm:overflow-visible">
+      <div className="flex snap-x gap-2 sm:grid sm:grid-cols-3 sm:gap-3 stagger-children">
+        {data.map(({ currency, total, change, changePercent, count }) => (
+          <SummaryCard
+            key={currency}
+            title={`${currency} Total`}
+            value={formatCurrency(total, currency)}
+            change={change}
+            changeLabel={`${change > 0 ? "+" : ""}${changePercent.toFixed(1)}%`}
+            meta={`${count} account${count !== 1 ? "s" : ""}`}
+          />
+        ))}
 
-      {/* Total balance across currencies */}
-      <Card className="border-border/60 bg-card/70 sm:col-span-1">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-2">
-          <CardTitle className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Total Balance
-          </CardTitle>
-          <TrendIcon change={totalChange} />
-        </CardHeader>
-        <CardContent className="px-4 pb-4 pt-0">
-          <div className="text-lg font-semibold truncate tabular-nums sm:text-xl">
-            {formatCurrency(totalMain, mainCurrency)}
-          </div>
-          <div className="mt-1 flex items-center gap-2 text-[11px]">
-            <span className={`text-xs font-medium tabular-nums ${changeColor(totalChange)}`}>
-              {totalChange > 0 ? "+" : ""}{totalChangePercent.toFixed(1)}%
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {accounts.length} account{accounts.length !== 1 ? "s" : ""} · {rateLabel}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+        <SummaryCard
+          title="Total Balance"
+          value={formatCurrency(totalMain, mainCurrency)}
+          change={totalChange}
+          changeLabel={`${totalChange > 0 ? "+" : ""}${totalChangePercent.toFixed(1)}%`}
+          meta={`${accounts.length} account${accounts.length !== 1 ? "s" : ""} · ${rateLabel}`}
+        />
+      </div>
     </div>
+  );
+}
+
+function SummaryCard({
+  title,
+  value,
+  change,
+  changeLabel,
+  meta,
+}: {
+  title: string;
+  value: string;
+  change: number;
+  changeLabel: string;
+  meta: string;
+}) {
+  return (
+    <Card className="min-w-[168px] snap-start border-border/60 bg-card/70 sm:min-w-0">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 px-3 pt-3 pb-1.5 sm:px-4 sm:pt-4 sm:pb-2">
+        <CardTitle className="pr-3 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:text-xs sm:tracking-[0.16em]">
+          {title}
+        </CardTitle>
+        <TrendIcon change={change} />
+      </CardHeader>
+      <CardContent className="px-3 pb-3 pt-0 sm:px-4 sm:pb-4">
+        <div className="text-[1.35rem] font-semibold leading-none tabular-nums sm:text-xl">
+          {value}
+        </div>
+        <div className="mt-2 flex items-center gap-2 text-[10px] sm:mt-1 sm:gap-2 sm:text-[11px]">
+          <span className={`text-[10px] font-medium tabular-nums sm:text-xs ${changeColor(change)}`}>
+            {changeLabel}
+          </span>
+          <span className="text-[10px] text-muted-foreground sm:text-xs">
+            {meta}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
