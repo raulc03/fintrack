@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, Base
+from app.dev_seed import seed_dev_data
 from app.routers import auth, accounts, movements, categories, goals, obligations, user_settings
 
 
@@ -13,6 +14,8 @@ async def lifespan(app: FastAPI):
     # Create tables on startup (dev only — use Alembic in production)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    if settings.dev_seed:
+        await seed_dev_data()
     yield
     await engine.dispose()
 
