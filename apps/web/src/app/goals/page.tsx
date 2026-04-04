@@ -27,9 +27,10 @@ const GOAL_TYPES: { value: GoalType; label: string; icon: typeof PiggyBank }[] =
 ];
 
 export default function GoalsPage() {
-  const { goals, expenseLimitHistory, loading, create } = useGoals();
+  const { goals, expenseLimitHistory, loading, create, update, remove } = useGoals();
   const { categories } = useCategories();
   const [creatingType, setCreatingType] = useState<GoalType | null>(null);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
 
   const expenseCategories = categories.filter((c) => c.type === "expense");
 
@@ -43,8 +44,28 @@ export default function GoalsPage() {
     toast.success("Goal created");
   };
 
+  const handleUpdate = async (goalId: string, data: CreateGoalInput) => {
+    await update(goalId, data);
+    setEditingGoalId(null);
+    toast.success("Goal updated");
+  };
+
+  const handleDelete = async (goalId: string, goalName: string) => {
+    if (!confirm(`Delete "${goalName}"? This cannot be undone.`)) return;
+
+    await remove(goalId);
+    setEditingGoalId((current) => (current === goalId ? null : current));
+    toast.success("Goal deleted");
+  };
+
   const handleCancel = () => {
     setCreatingType(null);
+    setEditingGoalId(null);
+  };
+
+  const handleEdit = (goalId: string | null) => {
+    setCreatingType(null);
+    setEditingGoalId(goalId);
   };
 
   return (
@@ -99,7 +120,11 @@ export default function GoalsPage() {
               creating={creatingType === "savings"}
               creatingType="savings"
               expenseCategories={expenseCategories}
+              editingGoalId={editingGoalId}
               onCreateSave={handleCreate}
+              onUpdateSave={handleUpdate}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
               onCreateCancel={handleCancel}
             />
             <GoalSection
@@ -108,7 +133,11 @@ export default function GoalsPage() {
               creating={creatingType === "investment"}
               creatingType="investment"
               expenseCategories={expenseCategories}
+              editingGoalId={editingGoalId}
               onCreateSave={handleCreate}
+              onUpdateSave={handleUpdate}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
               onCreateCancel={handleCancel}
             />
             <GoalSection
@@ -117,7 +146,11 @@ export default function GoalsPage() {
               creating={creatingType === "expense_limit"}
               creatingType="expense_limit"
               expenseCategories={expenseCategories}
+              editingGoalId={editingGoalId}
               onCreateSave={handleCreate}
+              onUpdateSave={handleUpdate}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
               onCreateCancel={handleCancel}
             />
             <BudgetHistoryCard history={expenseLimitHistory} />
@@ -134,7 +167,11 @@ function GoalSection({
   creating,
   creatingType,
   expenseCategories,
+  editingGoalId,
   onCreateSave,
+  onUpdateSave,
+  onDelete,
+  onEdit,
   onCreateCancel,
 }: {
   title: string;
@@ -142,7 +179,11 @@ function GoalSection({
   creating: boolean;
   creatingType: GoalType;
   expenseCategories: ReturnType<typeof useCategories>["categories"];
-  onCreateSave: (data: CreateGoalInput) => void;
+  editingGoalId: string | null;
+  onCreateSave: (data: CreateGoalInput) => void | Promise<void>;
+  onUpdateSave: (goalId: string, data: CreateGoalInput) => void | Promise<void>;
+  onDelete: (goalId: string, goalName: string) => void | Promise<void>;
+  onEdit: (goalId: string | null) => void;
   onCreateCancel: () => void;
 }) {
   if (goals.length === 0 && !creating) return null;
@@ -162,7 +203,29 @@ function GoalSection({
           />
         )}
         {goals.map((goal) => (
-          <GoalCard key={goal.id} goal={goal} />
+          editingGoalId === goal.id ? (
+            <GoalCardCreate
+              key={goal.id}
+              type={goal.type}
+              expenseCategories={expenseCategories}
+              initialValues={{
+                name: goal.name,
+                targetAmount: goal.targetAmount,
+                currency: goal.currency,
+                categoryId: goal.categoryId,
+                deadline: goal.deadline,
+              }}
+              onSave={(data) => onUpdateSave(goal.id, data)}
+              onCancel={onCreateCancel}
+            />
+          ) : (
+            <GoalCard
+              key={goal.id}
+              goal={goal}
+              onEdit={() => onEdit(goal.id)}
+              onDelete={() => onDelete(goal.id, goal.name)}
+            />
+          )
         ))}
       </div>
     </div>

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func
@@ -136,34 +137,41 @@ async def get_expense_limit_history(
         key = (category_id, currency, get_month_start(movement_date))
         spent_by_month[key] = spent_by_month.get(key, 0.0) + float(amount)
 
-    return [
-        GoalHistoryResponse(
-            goalId=goal.id,
-            goalName=goal.name,
-            currency=goal.currency,
-            targetAmount=float(goal.target_amount),
-            months=[
-                GoalHistoryMonthResponse(
-                    month=month_start.strftime("%Y-%m"),
-                    monthLabel=get_month_label(month_start),
-                    spentAmount=spent_by_month.get((goal.category_id, goal.currency, month_start), 0.0),
-                    targetAmount=float(goal.target_amount),
-                    progressPercent=(
-                        min(
-                            spent_by_month.get((goal.category_id, goal.currency, month_start), 0.0)
-                            / float(goal.target_amount)
-                            * 100,
-                            999.0,
-                        )
-                        if float(goal.target_amount) > 0
-                        else 0.0
-                    ),
-                )
-                for month_start in month_starts
-            ],
+    responses: list[GoalHistoryResponse] = []
+    for goal in goals:
+        goal_start_month = max(first_month_start, get_month_start(goal.created_at))
+        goal_month_starts = [month_start for month_start in month_starts if month_start >= goal_start_month]
+        goal_month_starts.reverse()
+
+        responses.append(
+            GoalHistoryResponse(
+                goalId=goal.id,
+                goalName=goal.name,
+                currency=goal.currency,
+                targetAmount=float(goal.target_amount),
+                months=[
+                    GoalHistoryMonthResponse(
+                        month=month_start.strftime("%Y-%m"),
+                        monthLabel=get_month_label(month_start),
+                        spentAmount=spent_by_month.get((goal.category_id, goal.currency, month_start), 0.0),
+                        targetAmount=float(goal.target_amount),
+                        progressPercent=(
+                            min(
+                                spent_by_month.get((goal.category_id, goal.currency, month_start), 0.0)
+                                / float(goal.target_amount)
+                                * 100,
+                                999.0,
+                            )
+                            if float(goal.target_amount) > 0
+                            else 0.0
+                        ),
+                    )
+                    for month_start in goal_month_starts
+                ],
+            )
         )
-        for goal in goals
-    ]
+
+    return responses
 
 
 @router.get("", response_model=list[GoalResponse])
@@ -244,7 +252,7 @@ async def update_goal(goal_id: str, data: UpdateGoalInput, user: User = Depends(
 
     field_map = {"targetAmount": "target_amount", "categoryId": "category_id"}
     for field, value in data.model_dump(exclude_unset=True).items():
-        db_field = field_map.get(field, field)
+        db_field = cast(str, field_map.get(field, field))
         if db_field == "deadline" and value:
             value = parse_date(value)
         setattr(goal, db_field, value)

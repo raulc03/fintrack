@@ -35,19 +35,19 @@ export function useGoals() {
 
   const create = async (input: CreateGoalInput) => {
     const created = await financeService.goals.create(input);
-    setGoals((prev) => [...prev, created]);
+    await fetch();
     return created;
   };
 
   const update = async (id: string, input: Partial<CreateGoalInput>) => {
     const updated = await financeService.goals.update(id, input);
-    setGoals((prev) => prev.map((g) => (g.id === id ? updated : g)));
+    await fetch();
     return updated;
   };
 
   const remove = async (id: string) => {
     await financeService.goals.delete(id);
-    setGoals((prev) => prev.filter((g) => g.id !== id));
+    await fetch();
   };
 
   const allocate = async (

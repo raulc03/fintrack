@@ -25,21 +25,25 @@ const typeLabels: Record<GoalType, string> = {
 interface GoalCardCreateProps {
   type: GoalType;
   expenseCategories: Category[];
-  onSave: (data: CreateGoalInput) => void;
+  initialValues?: Partial<CreateGoalInput>;
+  onSave: (data: CreateGoalInput) => void | Promise<void>;
   onCancel: () => void;
 }
 
 export function GoalCardCreate({
   type,
   expenseCategories,
+  initialValues,
   onSave,
   onCancel,
 }: GoalCardCreateProps) {
-  const [name, setName] = useState("");
-  const [currency, setCurrency] = useState<Currency>("USD");
-  const [targetAmount, setTargetAmount] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const [currency, setCurrency] = useState<Currency>(initialValues?.currency ?? "USD");
+  const [targetAmount, setTargetAmount] = useState(
+    initialValues?.targetAmount != null ? String(initialValues.targetAmount) : ""
+  );
+  const [categoryId, setCategoryId] = useState(initialValues?.categoryId ?? "");
+  const [deadline, setDeadline] = useState(initialValues?.deadline?.slice(0, 10) ?? "");
   const dateRef = useRef<HTMLInputElement>(null);
 
   const canSave =
