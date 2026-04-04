@@ -12,6 +12,7 @@ import type {
   Goal,
   CreateGoalInput,
   GoalAllocation,
+  GoalHistory,
   AuthResponse,
   LoginInput,
   SignupInput,
@@ -19,6 +20,7 @@ import type {
   CreateObligationInput,
   UpdateObligationInput,
   ObligationSummary,
+  ObligationHistoryMonth,
   UserSettings,
   UpdateSettingsInput,
 } from "@finance/types";
@@ -75,6 +77,7 @@ export interface IGoalService {
     movementId: string
   ): Promise<GoalAllocation>;
   getAllocations(goalId: string): Promise<GoalAllocation[]>;
+  getExpenseLimitHistory(months?: number): Promise<GoalHistory[]>;
 }
 
 export interface IAuthService {
@@ -92,6 +95,7 @@ export interface IObligationService {
   delete(id: string): Promise<void>;
   link(id: string, movementId: string | null): Promise<Obligation>;
   getAvailableMovements(): Promise<Movement[]>;
+  getHistory(months?: number): Promise<ObligationHistoryMonth[]>;
 }
 
 export interface ISettingsService {

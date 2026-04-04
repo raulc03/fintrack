@@ -3,6 +3,7 @@ import type {
   CreateObligationInput,
   UpdateObligationInput,
   ObligationSummary,
+  ObligationHistoryMonth,
   Movement,
 } from "@finance/types";
 import type { IObligationService } from "../types";
@@ -44,5 +45,9 @@ export class ApiObligationService implements IObligationService {
 
   async getAvailableMovements(): Promise<Movement[]> {
     return apiRequest<Movement[]>("/api/obligations/available-movements");
+  }
+
+  async getHistory(months = 6): Promise<ObligationHistoryMonth[]> {
+    return apiRequest<ObligationHistoryMonth[]>(`/api/obligations/history?months=${months}`);
   }
 }

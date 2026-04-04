@@ -45,3 +45,20 @@ class ObligationSummaryResponse(BaseModel):
     coveragePercent: float
     currentBalance: float
     freeAfterObligations: float
+
+
+class ObligationHistoryItemResponse(BaseModel):
+    obligationId: str
+    name: str
+    currency: str
+    dueAmount: float
+    paidAmount: float
+    isPaid: bool
+
+
+class ObligationHistoryMonthResponse(BaseModel):
+    month: str
+    monthLabel: str
+    totalDue: float
+    totalPaid: float
+    items: list[ObligationHistoryItemResponse]

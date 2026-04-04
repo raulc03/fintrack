@@ -41,3 +41,20 @@ export interface ObligationSummary {
   currentBalance: number;
   freeAfterObligations: number;
 }
+
+export interface ObligationHistoryItem {
+  obligationId: string;
+  name: string;
+  currency: Currency;
+  dueAmount: number;
+  paidAmount: number;
+  isPaid: boolean;
+}
+
+export interface ObligationHistoryMonth {
+  month: string;
+  monthLabel: string;
+  totalDue: number;
+  totalPaid: number;
+  items: ObligationHistoryItem[];
+}

@@ -32,3 +32,19 @@ export interface GoalAllocation {
   amount: number;
   date: string;
 }
+
+export interface GoalHistoryMonth {
+  month: string;
+  monthLabel: string;
+  spentAmount: number;
+  targetAmount: number;
+  progressPercent: number;
+}
+
+export interface GoalHistory {
+  goalId: string;
+  goalName: string;
+  currency: Currency;
+  targetAmount: number;
+  months: GoalHistoryMonth[];
+}

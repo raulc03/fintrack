@@ -44,3 +44,19 @@ class GoalAllocationResponse(BaseModel):
     movementId: str
     amount: float
     date: str
+
+
+class GoalHistoryMonthResponse(BaseModel):
+    month: str
+    monthLabel: str
+    spentAmount: float
+    targetAmount: float
+    progressPercent: float
+
+
+class GoalHistoryResponse(BaseModel):
+    goalId: str
+    goalName: str
+    currency: str
+    targetAmount: float
+    months: list[GoalHistoryMonthResponse]

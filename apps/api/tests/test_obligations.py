@@ -343,3 +343,44 @@ async def test_cannot_link_previous_month_movement(auth_client: AsyncClient):
         res = await auth_client.patch(f"/api/obligations/{ob_id}/link", json={"movementId": mov.json()["id"]})
         assert res.status_code == 400
         assert res.json()["detail"] == "Only current-month movements can be linked to an obligation"
+
+
+@pytest.mark.asyncio
+async def test_obligation_history_tracks_paid_and_unpaid_months(auth_client: AsyncClient):
+    cats = await auth_client.get("/api/categories?type=expense")
+    cat_id = cats.json()[0]["id"]
+
+    acct = await auth_client.post("/api/accounts", json={
+        "name": "Checking", "currency": "USD", "initialBalance": 5000,
+    })
+    acct_id = acct.json()["id"]
+
+    with freeze_obligation_time(datetime(2026, 1, 15, 12, 0, 0)):
+        ob = await auth_client.post("/api/obligations", json={
+            "name": "Rent", "categoryId": cat_id, "estimatedAmount": 1200, "currency": "USD", "dueDay": 1,
+        })
+        ob_id = ob.json()["id"]
+
+        mov = await auth_client.post("/api/movements", json={
+            "type": "expense", "amount": 1200, "description": "Rent payment",
+            "date": datetime(2026, 1, 20, 9, 0, 0).isoformat(), "accountId": acct_id, "categoryId": cat_id,
+        })
+        await auth_client.patch(f"/api/obligations/{ob_id}/link", json={"movementId": mov.json()["id"]})
+
+    with freeze_obligation_time(datetime(2026, 2, 10, 12, 0, 0)):
+        history = await auth_client.get("/api/obligations/history?months=2")
+        assert history.status_code == 200
+        data = history.json()
+        assert [month["month"] for month in data] == ["2026-02", "2026-01"]
+
+        feb_item = data[0]["items"][0]
+        assert feb_item["name"] == "Rent"
+        assert feb_item["isPaid"] is False
+        assert feb_item["dueAmount"] == 1200
+        assert feb_item["paidAmount"] == 0
+
+        jan_item = data[1]["items"][0]
+        assert jan_item["name"] == "Rent"
+        assert jan_item["isPaid"] is True
+        assert jan_item["dueAmount"] == 1200
+        assert jan_item["paidAmount"] == 1200

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { useObligations } from "@/hooks/use-obligations";
+import { ObligationHistoryCard } from "@/components/obligations/obligation-history-card";
 import { useCategories } from "@/hooks/use-categories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -32,7 +33,7 @@ import { getCoverageColorClass, getCoverageProgressClass, SUPPORTED_CURRENCIES }
 import type { Currency, CreateObligationInput, Movement } from "@finance/types";
 
 export default function ObligationsPage() {
-  const { obligations, summaries, availableMovements, loading, error, refetch, create, remove, link } = useObligations();
+  const { obligations, summaries, history, availableMovements, loading, error, refetch, create, remove, link } = useObligations();
   const { categories } = useCategories("expense");
   const [creating, setCreating] = useState(false);
   const [linkingObligationId, setLinkingObligationId] = useState<string | null>(null);
@@ -220,6 +221,8 @@ export default function ObligationsPage() {
                 </ul>
               </CardContent>
             </Card>
+
+            <ObligationHistoryCard history={history} />
           </>
         )}
       </div>

@@ -12,6 +12,7 @@ import type {
   Goal,
   CreateGoalInput,
   GoalAllocation,
+  GoalHistory,
 } from "@finance/types";
 import type {
   IFinanceService,
@@ -176,6 +177,10 @@ class ApiGoalService implements IGoalService {
 
   async getAllocations(goalId: string): Promise<GoalAllocation[]> {
     return apiRequest<GoalAllocation[]>(`/api/goals/${goalId}/allocations`);
+  }
+
+  async getExpenseLimitHistory(months = 6): Promise<GoalHistory[]> {
+    return apiRequest<GoalHistory[]>(`/api/goals/expense-limit-history?months=${months}`);
   }
 }
 

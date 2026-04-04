@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { financeService } from "@finance/services";
-import type { Obligation, CreateObligationInput, UpdateObligationInput, ObligationSummary, Movement } from "@finance/types";
+import type { Obligation, CreateObligationInput, UpdateObligationInput, ObligationSummary, ObligationHistoryMonth, Movement } from "@finance/types";
 
 export function useObligations() {
   const [obligations, setObligations] = useState<Obligation[]>([]);
   const [summaries, setSummaries] = useState<ObligationSummary[]>([]);
+  const [history, setHistory] = useState<ObligationHistoryMonth[]>([]);
   const [availableMovements, setAvailableMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -14,14 +15,16 @@ export function useObligations() {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const [obData, sumData, movData] = await Promise.all([
+      const [obData, sumData, movData, historyData] = await Promise.all([
         financeService.obligations.getAll(),
         financeService.obligations.getSummary(),
         financeService.obligations.getAvailableMovements(),
+        financeService.obligations.getHistory(),
       ]);
       setObligations(obData);
       setSummaries(sumData);
       setAvailableMovements(movData);
+      setHistory(historyData);
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -57,5 +60,5 @@ export function useObligations() {
     return updated;
   };
 
-  return { obligations, summaries, availableMovements, loading, error, refetch: fetch, create, update, remove, link };
+  return { obligations, summaries, history, availableMovements, loading, error, refetch: fetch, create, update, remove, link };
 }

@@ -15,6 +15,8 @@ from app.schemas.goal import (
     GoalResponse,
     GoalAllocationInput,
     GoalAllocationResponse,
+    GoalHistoryMonthResponse,
+    GoalHistoryResponse,
 )
 
 router = APIRouter()
@@ -23,6 +25,20 @@ router = APIRouter()
 def parse_date(iso_str: str) -> datetime:
     dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
     return dt.replace(tzinfo=None)
+
+
+def get_month_start(value: datetime) -> datetime:
+    return datetime(value.year, value.month, 1)
+
+
+def add_months(value: datetime, months: int) -> datetime:
+    total_months = (value.year * 12 + value.month - 1) + months
+    year, month_index = divmod(total_months, 12)
+    return datetime(year, month_index + 1, 1)
+
+
+def get_month_label(value: datetime) -> str:
+    return value.strftime("%b %Y")
 
 
 def to_response(g: Goal, spent: float | None = None) -> GoalResponse:
@@ -80,6 +96,74 @@ async def get_monthly_expense_totals(
 
     result = await db.execute(query)
     return {row[0]: float(row[1]) for row in result.all()}
+
+
+@router.get("/expense-limit-history", response_model=list[GoalHistoryResponse])
+async def get_expense_limit_history(
+    months: int = 6,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    months = max(1, min(months, 24))
+    goals_result = await db.execute(
+        select(Goal)
+        .where(Goal.user_id == user.id, Goal.type == "expense_limit", Goal.category_id.is_not(None))
+        .order_by(Goal.name)
+    )
+    goals = list(goals_result.scalars().all())
+    if not goals:
+        return []
+
+    current_month_start = get_month_start(datetime.utcnow())
+    first_month_start = add_months(current_month_start, -(months - 1))
+    month_end = add_months(current_month_start, 1)
+    month_starts = [add_months(first_month_start, offset) for offset in range(months)]
+
+    pairs = {(goal.category_id, goal.currency) for goal in goals if goal.category_id}
+    result = await db.execute(
+        select(Movement.category_id, Movement.currency, Movement.date, Movement.amount)
+        .where(
+            Movement.user_id == user.id,
+            Movement.type == "expense",
+            Movement.date >= first_month_start,
+            Movement.date < month_end,
+        )
+    )
+    spent_by_month: dict[tuple[str | None, str, datetime], float] = {}
+    for category_id, currency, movement_date, amount in result.all():
+        if (category_id, currency) not in pairs:
+            continue
+        key = (category_id, currency, get_month_start(movement_date))
+        spent_by_month[key] = spent_by_month.get(key, 0.0) + float(amount)
+
+    return [
+        GoalHistoryResponse(
+            goalId=goal.id,
+            goalName=goal.name,
+            currency=goal.currency,
+            targetAmount=float(goal.target_amount),
+            months=[
+                GoalHistoryMonthResponse(
+                    month=month_start.strftime("%Y-%m"),
+                    monthLabel=get_month_label(month_start),
+                    spentAmount=spent_by_month.get((goal.category_id, goal.currency, month_start), 0.0),
+                    targetAmount=float(goal.target_amount),
+                    progressPercent=(
+                        min(
+                            spent_by_month.get((goal.category_id, goal.currency, month_start), 0.0)
+                            / float(goal.target_amount)
+                            * 100,
+                            999.0,
+                        )
+                        if float(goal.target_amount) > 0
+                        else 0.0
+                    ),
+                )
+                for month_start in month_starts
+            ],
+        )
+        for goal in goals
+    ]
 
 
 @router.get("", response_model=list[GoalResponse])

@@ -2,18 +2,23 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { financeService } from "@finance/services";
-import type { Goal, CreateGoalInput, GoalAllocation } from "@finance/types";
+import type { Goal, CreateGoalInput, GoalAllocation, GoalHistory } from "@finance/types";
 
 export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [expenseLimitHistory, setExpenseLimitHistory] = useState<GoalHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await financeService.goals.getAll();
+      const [data, history] = await Promise.all([
+        financeService.goals.getAll(),
+        financeService.goals.getExpenseLimitHistory(),
+      ]);
       setGoals(data);
+      setExpenseLimitHistory(history);
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -57,7 +62,7 @@ export function useGoals() {
     return allocation;
   };
 
-  return { goals, loading, error, refetch: fetch, create, update, remove, allocate };
+  return { goals, expenseLimitHistory, loading, error, refetch: fetch, create, update, remove, allocate };
 }
 
 export function useGoal(id: string) {

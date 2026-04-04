@@ -12,6 +12,8 @@ import type {
   Goal,
   CreateGoalInput,
   GoalAllocation,
+  GoalHistory,
+  ObligationHistoryMonth,
 } from "@finance/types";
 import type {
   IFinanceService,
@@ -363,6 +365,10 @@ class MockGoalService implements IGoalService {
     return Array.from(this.allocations.values()).filter(
       (a) => a.goalId === goalId
     );
+  }
+
+  async getExpenseLimitHistory(): Promise<GoalHistory[]> {
+    return [];
   }
 }
 

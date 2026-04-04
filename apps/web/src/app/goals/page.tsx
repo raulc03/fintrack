@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { GoalCard } from "@/components/goals/goal-card";
 import { GoalCardCreate } from "@/components/goals/goal-card-create";
+import { BudgetHistoryCard } from "@/components/goals/budget-history-card";
 import { useGoals } from "@/hooks/use-goals";
 import { useCategories } from "@/hooks/use-categories";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,7 +27,7 @@ const GOAL_TYPES: { value: GoalType; label: string; icon: typeof PiggyBank }[] =
 ];
 
 export default function GoalsPage() {
-  const { goals, loading, create } = useGoals();
+  const { goals, expenseLimitHistory, loading, create } = useGoals();
   const { categories } = useCategories();
   const [creatingType, setCreatingType] = useState<GoalType | null>(null);
 
@@ -119,6 +120,7 @@ export default function GoalsPage() {
               onCreateSave={handleCreate}
               onCreateCancel={handleCancel}
             />
+            <BudgetHistoryCard history={expenseLimitHistory} />
           </>
         )}
       </div>

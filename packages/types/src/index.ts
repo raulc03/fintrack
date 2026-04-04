@@ -11,6 +11,8 @@ export type {
   Goal,
   CreateGoalInput,
   GoalAllocation,
+  GoalHistory,
+  GoalHistoryMonth,
 } from "./goal";
 export type {
   User,
@@ -23,6 +25,8 @@ export type {
   CreateObligationInput,
   UpdateObligationInput,
   ObligationSummary,
+  ObligationHistoryItem,
+  ObligationHistoryMonth,
 } from "./obligation";
 export type {
   UserSettings,

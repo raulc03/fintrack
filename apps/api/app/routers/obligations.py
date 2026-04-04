@@ -10,13 +10,15 @@ from app.deps import get_current_user
 from app.models.user import User
 from app.models.account import Account
 from app.models.movement import Movement
-from app.models.obligation import Obligation
+from app.models.obligation import Obligation, ObligationHistory
 from app.schemas.obligation import (
     CreateObligationInput,
     UpdateObligationInput,
     LinkMovementInput,
     ObligationResponse,
     ObligationSummaryResponse,
+    ObligationHistoryItemResponse,
+    ObligationHistoryMonthResponse,
 )
 from app.schemas.movement import MovementResponse
 
@@ -44,6 +46,10 @@ def get_current_month_range() -> tuple[datetime, datetime]:
 
 def get_current_due_amount(obligation: Obligation) -> float:
     return float(obligation.estimated_amount) + float(obligation.carryover_amount)
+
+
+def get_month_label(value: datetime) -> str:
+    return value.strftime("%b %Y")
 
 
 def to_response(o: Obligation, linked_amount: float | None = None) -> ObligationResponse:
@@ -110,6 +116,86 @@ async def get_linked_movements(
     return {movement.id: movement for movement in result.scalars().all()}
 
 
+async def get_history_rows(
+    db: AsyncSession,
+    obligations: list[Obligation],
+) -> dict[tuple[str, datetime], ObligationHistory]:
+    obligation_ids = [obligation.id for obligation in obligations]
+    if not obligation_ids:
+        return {}
+
+    result = await db.execute(
+        select(ObligationHistory).where(ObligationHistory.obligation_id.in_(obligation_ids))
+    )
+    return {
+        (row.obligation_id, get_month_start(row.month_start)): row
+        for row in result.scalars().all()
+    }
+
+
+def sync_history_row(
+    db: AsyncSession,
+    history_rows: dict[tuple[str, datetime], ObligationHistory],
+    obligation: Obligation,
+    month_start: datetime,
+    carryover_amount: float,
+    paid_amount: float,
+    linked_movement_id: str | None,
+) -> None:
+    key = (obligation.id, month_start)
+    due_amount = float(obligation.estimated_amount) + carryover_amount
+    row = history_rows.get(key)
+    if row is None:
+        row = ObligationHistory(
+            obligation_id=obligation.id,
+            month_start=month_start,
+            name=obligation.name,
+            currency=obligation.currency,
+            base_amount=float(obligation.estimated_amount),
+            carryover_amount=carryover_amount,
+            due_amount=due_amount,
+            paid_amount=paid_amount,
+            linked_movement_id=linked_movement_id,
+            is_paid=paid_amount > 0,
+        )
+        db.add(row)
+        history_rows[key] = row
+        return
+
+    row.name = obligation.name
+    row.currency = obligation.currency
+    row.base_amount = float(obligation.estimated_amount)
+    row.carryover_amount = carryover_amount
+    row.due_amount = due_amount
+    row.paid_amount = paid_amount
+    row.linked_movement_id = linked_movement_id
+    row.is_paid = paid_amount > 0
+
+
+async def sync_current_history_row(
+    db: AsyncSession,
+    obligation: Obligation,
+    linked_movement: Movement | None,
+) -> None:
+    history_rows = await get_history_rows(db, [obligation])
+    current_cycle_start = get_month_start(obligation.cycle_start)
+    paid_amount = 0.0
+    linked_movement_id: str | None = None
+    if linked_movement is not None and current_cycle_start <= linked_movement.date < add_months(current_cycle_start, 1):
+        paid_amount = float(linked_movement.amount)
+        linked_movement_id = linked_movement.id
+    sync_history_row(
+        db,
+        history_rows,
+        obligation,
+        current_cycle_start,
+        float(obligation.carryover_amount),
+        paid_amount,
+        linked_movement_id,
+    )
+    await db.flush()
+
+
 async def sync_obligations_for_current_month(
     db: AsyncSession,
     obligations: list[Obligation],
@@ -120,6 +206,7 @@ async def sync_obligations_for_current_month(
 
     current_cycle_start, current_cycle_end = get_current_month_range()
     linked_movements = await get_linked_movements(db, obligations, user_id)
+    history_rows = await get_history_rows(db, obligations)
     changed = False
 
     for obligation in obligations:
@@ -142,10 +229,30 @@ async def sync_obligations_for_current_month(
         )
 
         if elapsed_months > 0:
-            if was_paid_in_tracked_cycle:
-                next_carryover = base_amount * max(elapsed_months - 1, 0)
-            else:
-                next_carryover = carryover_amount + base_amount * elapsed_months
+            tracked_paid_amount = float(linked_movement.amount) if was_paid_in_tracked_cycle and linked_movement else 0.0
+            sync_history_row(
+                db,
+                history_rows,
+                obligation,
+                cycle_start,
+                carryover_amount,
+                tracked_paid_amount,
+                linked_movement.id if was_paid_in_tracked_cycle and linked_movement else None,
+            )
+
+            next_carryover = max(base_amount + carryover_amount - tracked_paid_amount, 0.0)
+            for offset in range(1, elapsed_months):
+                missed_month_start = add_months(cycle_start, offset)
+                sync_history_row(
+                    db,
+                    history_rows,
+                    obligation,
+                    missed_month_start,
+                    next_carryover,
+                    0.0,
+                    None,
+                )
+                next_carryover += base_amount
 
             if carryover_amount != next_carryover:
                 obligation.carryover_amount = next_carryover
@@ -156,14 +263,23 @@ async def sync_obligations_for_current_month(
             if obligation.cycle_start != current_cycle_start:
                 obligation.cycle_start = current_cycle_start
                 changed = True
-            continue
 
         if obligation.linked_movement_id is not None and not is_paid_in_current_cycle:
             obligation.linked_movement_id = None
             changed = True
 
-    if changed:
-        await db.flush()
+        current_paid_amount = float(linked_movement.amount) if is_paid_in_current_cycle and linked_movement else 0.0
+        sync_history_row(
+            db,
+            history_rows,
+            obligation,
+            current_cycle_start,
+            float(obligation.carryover_amount),
+            current_paid_amount,
+            linked_movement.id if is_paid_in_current_cycle and linked_movement else None,
+        )
+
+    await db.flush()
 
     return {
         movement_id: movement
@@ -287,6 +403,61 @@ async def get_summary(
     return summaries
 
 
+@router.get("/history", response_model=list[ObligationHistoryMonthResponse])
+async def get_history(
+    months: int = 6,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    months = max(1, min(months, 24))
+    result = await db.execute(
+        select(Obligation)
+        .where(Obligation.user_id == user.id, Obligation.is_active.is_(True))
+        .order_by(Obligation.due_day)
+    )
+    obligations = list(result.scalars().all())
+    await sync_obligations_for_current_month(db, obligations, user.id)
+
+    current_month_start = get_month_start(datetime.utcnow())
+    first_month_start = add_months(current_month_start, -(months - 1))
+    history_result = await db.execute(
+        select(ObligationHistory)
+        .join(Obligation, Obligation.id == ObligationHistory.obligation_id)
+        .where(
+            Obligation.user_id == user.id,
+            ObligationHistory.month_start >= first_month_start,
+            ObligationHistory.month_start < add_months(current_month_start, 1),
+        )
+        .order_by(ObligationHistory.month_start.desc(), ObligationHistory.name)
+    )
+    rows = list(history_result.scalars().all())
+
+    months_map: dict[datetime, list[ObligationHistory]] = {}
+    for row in rows:
+        months_map.setdefault(get_month_start(row.month_start), []).append(row)
+
+    return [
+        ObligationHistoryMonthResponse(
+            month=month_start.strftime("%Y-%m"),
+            monthLabel=get_month_label(month_start),
+            totalDue=sum(float(item.due_amount) for item in items),
+            totalPaid=sum(float(item.paid_amount) for item in items),
+            items=[
+                ObligationHistoryItemResponse(
+                    obligationId=item.obligation_id,
+                    name=item.name,
+                    currency=item.currency,
+                    dueAmount=float(item.due_amount),
+                    paidAmount=float(item.paid_amount),
+                    isPaid=item.is_paid,
+                )
+                for item in items
+            ],
+        )
+        for month_start, items in sorted(months_map.items(), key=lambda entry: entry[0], reverse=True)
+    ]
+
+
 @router.post("", response_model=ObligationResponse, status_code=status.HTTP_201_CREATED)
 async def create_obligation(
     data: CreateObligationInput,
@@ -306,6 +477,7 @@ async def create_obligation(
     )
     db.add(obligation)
     await db.flush()
+    await sync_current_history_row(db, obligation, None)
     return to_response(obligation)
 
 
@@ -325,6 +497,13 @@ async def update_obligation(
         setattr(obligation, target_field, value)
 
     await db.flush()
+    linked_movement = None
+    if obligation.linked_movement_id:
+        linked_movement_result = await db.execute(
+            select(Movement).where(Movement.id == obligation.linked_movement_id, Movement.user_id == user.id)
+        )
+        linked_movement = linked_movement_result.scalar_one_or_none()
+    await sync_current_history_row(db, obligation, linked_movement)
     return to_response(obligation)
 
 
@@ -335,6 +514,11 @@ async def delete_obligation(
     db: AsyncSession = Depends(get_db),
 ):
     obligation = await get_user_obligation(db, obligation_id, user.id)
+    history_result = await db.execute(
+        select(ObligationHistory).where(ObligationHistory.obligation_id == obligation.id)
+    )
+    for history_row in history_result.scalars().all():
+        await db.delete(history_row)
     await db.delete(obligation)
 
 
@@ -349,6 +533,7 @@ async def link_movement(
     await sync_obligations_for_current_month(db, [obligation], user.id)
 
     linked_amount: float | None = None
+    mov: Movement | None = None
     if data.movementId:
         month_start, month_end = get_current_month_range()
         mov_result = await db.execute(
@@ -366,4 +551,5 @@ async def link_movement(
 
     obligation.linked_movement_id = data.movementId
     await db.flush()
+    await sync_current_history_row(db, obligation, mov if data.movementId else None)
     return to_response(obligation, linked_amount)
