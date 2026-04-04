@@ -1,5 +1,21 @@
+from datetime import datetime
+from unittest.mock import patch
+
 import pytest
 from httpx import AsyncClient
+
+
+class FrozenDateTime(datetime):
+    frozen_now = datetime(2026, 1, 15, 12, 0, 0)
+
+    @classmethod
+    def utcnow(cls):
+        return cls.frozen_now
+
+
+def freeze_obligation_time(value: datetime):
+    FrozenDateTime.frozen_now = value
+    return patch("app.routers.obligations.datetime", FrozenDateTime)
 
 
 @pytest.mark.asyncio
@@ -60,7 +76,6 @@ async def test_obligation_starts_unpaid(auth_client: AsyncClient):
     })
     acct_id = acct.json()["id"]
 
-    from datetime import datetime
     await auth_client.post("/api/movements", json={
         "type": "expense", "amount": 1200, "description": "Rent payment",
         "date": datetime.utcnow().isoformat(), "accountId": acct_id, "categoryId": cat_id,
@@ -93,7 +108,6 @@ async def test_summary(auth_client: AsyncClient):
         "name": "Netflix", "categoryId": cat_id, "estimatedAmount": 15, "currency": "USD", "dueDay": 25,
     })
 
-    from datetime import datetime
     mov = await auth_client.post("/api/movements", json={
         "type": "expense", "amount": 1200, "description": "Rent payment",
         "date": datetime.utcnow().isoformat(), "accountId": acct_id, "categoryId": cat_id,
@@ -124,7 +138,6 @@ async def test_manual_link(auth_client: AsyncClient):
     })
     acct_id = acct.json()["id"]
 
-    from datetime import datetime
     mov = await auth_client.post("/api/movements", json={
         "type": "expense", "amount": 50, "description": "Internet",
         "date": datetime.utcnow().isoformat(), "accountId": acct_id, "categoryId": cat_id,
@@ -196,7 +209,6 @@ async def test_link_and_unlink_obligation(auth_client: AsyncClient):
     ob_id = ob.json()["id"]
     assert ob.json()["isPaid"] is False
 
-    from datetime import datetime
     mov = await auth_client.post("/api/movements", json={
         "type": "expense", "amount": 15, "description": "Netflix payment",
         "date": datetime.utcnow().isoformat(), "accountId": acct_id, "categoryId": cat_id,
@@ -233,7 +245,6 @@ async def test_link_updates_summary(auth_client: AsyncClient):
     summary = await auth_client.get("/api/obligations/summary")
     assert summary.json()[0]["pendingAmount"] == 15
 
-    from datetime import datetime
     mov = await auth_client.post("/api/movements", json={
         "type": "expense", "amount": 15, "description": "Netflix payment",
         "date": datetime.utcnow().isoformat(), "accountId": acct_id, "categoryId": cat_id,
@@ -246,3 +257,89 @@ async def test_link_updates_summary(auth_client: AsyncClient):
     summary = await auth_client.get("/api/obligations/summary")
     assert summary.json()[0]["paidAmount"] == 15
     assert summary.json()[0]["pendingAmount"] == 0
+
+
+@pytest.mark.asyncio
+async def test_paid_obligation_resets_when_month_changes(auth_client: AsyncClient):
+    cats = await auth_client.get("/api/categories?type=expense")
+    cat_id = cats.json()[0]["id"]
+
+    acct = await auth_client.post("/api/accounts", json={
+        "name": "Checking", "currency": "USD", "initialBalance": 5000,
+    })
+    acct_id = acct.json()["id"]
+
+    with freeze_obligation_time(datetime(2026, 1, 15, 12, 0, 0)):
+        ob = await auth_client.post("/api/obligations", json={
+            "name": "Rent", "categoryId": cat_id, "estimatedAmount": 1200, "currency": "USD", "dueDay": 1,
+        })
+        ob_id = ob.json()["id"]
+
+        mov = await auth_client.post("/api/movements", json={
+            "type": "expense", "amount": 1200, "description": "Rent payment",
+            "date": datetime(2026, 1, 20, 9, 0, 0).isoformat(), "accountId": acct_id, "categoryId": cat_id,
+        })
+        await auth_client.patch(f"/api/obligations/{ob_id}/link", json={"movementId": mov.json()["id"]})
+
+    with freeze_obligation_time(datetime(2026, 2, 2, 12, 0, 0)):
+        res = await auth_client.get("/api/obligations")
+        assert res.status_code == 200
+        data = res.json()[0]
+        assert data["isPaid"] is False
+        assert data["linkedMovementId"] is None
+        assert data["estimatedAmount"] == 1200
+        assert data["carryoverAmount"] == 0
+
+        summary = await auth_client.get("/api/obligations/summary")
+        assert summary.json()[0]["paidAmount"] == 0
+        assert summary.json()[0]["pendingAmount"] == 1200
+
+
+@pytest.mark.asyncio
+async def test_unpaid_obligation_carries_over_into_new_month(auth_client: AsyncClient):
+    cats = await auth_client.get("/api/categories?type=expense")
+    cat_id = cats.json()[0]["id"]
+
+    with freeze_obligation_time(datetime(2026, 1, 15, 12, 0, 0)):
+        await auth_client.post("/api/obligations", json={
+            "name": "Rent", "categoryId": cat_id, "estimatedAmount": 1200, "currency": "USD", "dueDay": 1,
+        })
+
+    with freeze_obligation_time(datetime(2026, 2, 2, 12, 0, 0)):
+        res = await auth_client.get("/api/obligations")
+        assert res.status_code == 200
+        data = res.json()[0]
+        assert data["isPaid"] is False
+        assert data["baseAmount"] == 1200
+        assert data["carryoverAmount"] == 1200
+        assert data["estimatedAmount"] == 2400
+
+        summary = await auth_client.get("/api/obligations/summary")
+        assert summary.json()[0]["totalObligations"] == 2400
+        assert summary.json()[0]["pendingAmount"] == 2400
+
+
+@pytest.mark.asyncio
+async def test_cannot_link_previous_month_movement(auth_client: AsyncClient):
+    cats = await auth_client.get("/api/categories?type=expense")
+    cat_id = cats.json()[0]["id"]
+
+    acct = await auth_client.post("/api/accounts", json={
+        "name": "Checking", "currency": "USD", "initialBalance": 5000,
+    })
+    acct_id = acct.json()["id"]
+
+    with freeze_obligation_time(datetime(2026, 2, 2, 12, 0, 0)):
+        ob = await auth_client.post("/api/obligations", json={
+            "name": "Rent", "categoryId": cat_id, "estimatedAmount": 1200, "currency": "USD", "dueDay": 1,
+        })
+        ob_id = ob.json()["id"]
+
+        mov = await auth_client.post("/api/movements", json={
+            "type": "expense", "amount": 1200, "description": "Old rent payment",
+            "date": datetime(2026, 1, 31, 9, 0, 0).isoformat(), "accountId": acct_id, "categoryId": cat_id,
+        })
+
+        res = await auth_client.patch(f"/api/obligations/{ob_id}/link", json={"movementId": mov.json()["id"]})
+        assert res.status_code == 400
+        assert res.json()["detail"] == "Only current-month movements can be linked to an obligation"

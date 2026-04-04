@@ -25,6 +25,8 @@ class ObligationResponse(BaseModel):
     name: str
     categoryId: str
     estimatedAmount: float
+    baseAmount: float | None = None
+    carryoverAmount: float | None = None
     currency: str
     dueDay: int
     isPaid: bool

@@ -5,6 +5,8 @@ export interface Obligation {
   name: string;
   categoryId: string;
   estimatedAmount: number;
+  baseAmount?: number;
+  carryoverAmount?: number;
   currency: Currency;
   dueDay: number;
   isPaid: boolean;
