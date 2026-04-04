@@ -11,6 +11,7 @@ import type {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetFooter,
@@ -165,169 +166,257 @@ export function QuickAddSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[85vh] rounded-t-2xl overflow-y-auto"
+        className="max-h-[88vh] overflow-y-auto rounded-t-[28px] border-t border-border/60 p-0"
         showCloseButton={false}
       >
-        <SheetHeader className="flex flex-row items-center justify-between">
-          <SheetTitle>Quick Add</SheetTitle>
-          {speech.isSupported && (
-            <div className="flex gap-1">
-              <Button
-                variant={mode === "manual" ? "secondary" : "ghost"}
-                size="icon-sm"
-                onClick={() => setMode("manual")}
-                aria-label="Manual input"
-              >
-                <Keyboard className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={mode === "voice" ? "secondary" : "ghost"}
-                size="icon-sm"
-                onClick={() => setMode("voice")}
-                aria-label="Voice input"
-              >
-                <Mic className="h-4 w-4" />
-              </Button>
+        <SheetHeader className="border-b border-border/60 px-4 pt-4 pb-4 sm:px-6">
+          <div className="mx-auto flex w-full max-w-3xl items-start justify-between gap-4">
+            <div className="space-y-1">
+              <SheetTitle>Quick Add</SheetTitle>
+              <SheetDescription>
+                Capture a movement fast without leaving the dashboard.
+              </SheetDescription>
             </div>
-          )}
+            {speech.isSupported && (
+              <div className="flex rounded-xl border border-border/60 bg-muted/30 p-1">
+                <Button
+                  variant={mode === "manual" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setMode("manual")}
+                  aria-label="Manual input"
+                  className="h-9 rounded-lg px-3"
+                >
+                  <Keyboard className="mr-2 h-4 w-4" />
+                  Manual
+                </Button>
+                <Button
+                  variant={mode === "voice" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setMode("voice")}
+                  aria-label="Voice input"
+                  className="h-9 rounded-lg px-3"
+                >
+                  <Mic className="mr-2 h-4 w-4" />
+                  Voice
+                </Button>
+              </div>
+            )}
+          </div>
         </SheetHeader>
 
-        <div className="px-4 space-y-3">
+        <div className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6">
           {mode === "manual" ? (
-            <>
-              {/* Type tabs */}
+            <div className="space-y-5">
               <Tabs value={type} onValueChange={(v) => { setType(v as MovementType); setCategoryId(""); setObligationId(""); }}>
-                <TabsList className="w-full">
-                  <TabsTrigger value="expense" className="flex-1">Expense</TabsTrigger>
-                  <TabsTrigger value="income" className="flex-1">Income</TabsTrigger>
-                  <TabsTrigger value="transfer" className="flex-1">Transfer</TabsTrigger>
+                <TabsList className="h-11 w-full rounded-xl bg-muted/40 p-1">
+                  <TabsTrigger value="expense" className="flex-1 rounded-lg">Expense</TabsTrigger>
+                  <TabsTrigger value="income" className="flex-1 rounded-lg">Income</TabsTrigger>
+                  <TabsTrigger value="transfer" className="flex-1 rounded-lg">Transfer</TabsTrigger>
                 </TabsList>
               </Tabs>
 
-              {/* Amount + Date row */}
-              <div className="flex gap-2">
-                <AmountInput
-                  placeholder="Amount"
-                  value={amount}
-                  onChange={setAmount}
-                  className="flex-1 text-lg h-10"
-                />
-                <Input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-[130px] h-10 [color-scheme:dark]"
-                />
-              </div>
-
-              {/* Description */}
-              <Input
-                placeholder="Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-
-              {/* Account + Category (expense/income) or From + To (transfer) */}
-              {type === "transfer" ? (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Select value={accountId} onValueChange={(v) => { if (v) { setAccountId(v); if (v === destinationAccountId) setDestinationAccountId(""); } }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="From">
-                          {sourceAccount?.name ?? "From"}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={destinationAccountId} onValueChange={(v) => v && setDestinationAccountId(v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="To">
-                          {destAccount?.name ?? "To"}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts.filter((a) => a.id !== accountId).map((a) => (
-                          <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)]">
+                <div className="space-y-5 rounded-2xl border border-border/60 bg-background p-4 shadow-sm sm:p-5">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Movement details</p>
+                    <p className="text-xs text-muted-foreground">
+                      Set the essentials first, then choose where the money came from and where it belongs.
+                    </p>
                   </div>
-                  {isCrossCurrency && (
-                    <div className="space-y-1">
+
+                  <div className="grid gap-4 sm:grid-cols-[minmax(0,1.3fr)_minmax(180px,0.9fr)]">
+                    <div className="space-y-2">
+                      <label htmlFor="quick-add-amount" className="text-sm font-medium">Amount</label>
                       <AmountInput
-                        value={exchangeRate}
-                        onChange={setExchangeRate}
-                        placeholder="Exchange rate"
+                        id="quick-add-amount"
+                        placeholder="0.00"
+                        value={amount}
+                        onChange={setAmount}
+                        className="h-11 text-base"
                       />
-                      {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {sourceAccount?.currency} {amount} &times; {exchangeRate} = {destAccount?.currency}{" "}
-                          {(parseFloat(amount) * parseFloat(exchangeRate)).toFixed(2)}
-                        </p>
-                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="quick-add-date" className="text-sm font-medium">Date</label>
+                      <Input
+                        id="quick-add-date"
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="h-11 w-full [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="quick-add-description" className="text-sm font-medium">Description</label>
+                    <Input
+                      id="quick-add-description"
+                      placeholder={type === "transfer" ? "What is this transfer for?" : "What was this for?"}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="h-11"
+                    />
+                  </div>
+
+                  {type === "transfer" ? (
+                    <div className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+                      <div>
+                        <p className="text-sm font-medium">Transfer route</p>
+                        <p className="text-xs text-muted-foreground">Pick the source and destination accounts.</p>
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label htmlFor="quick-add-account" className="text-sm font-medium">From</label>
+                          <Select value={accountId} onValueChange={(v) => { if (v) { setAccountId(v); if (v === destinationAccountId) setDestinationAccountId(""); } }}>
+                            <SelectTrigger id="quick-add-account" className="h-11 w-full">
+                              <SelectValue placeholder="Select account">
+                                {sourceAccount?.name ?? "Select account"}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor="quick-add-destination" className="text-sm font-medium">To</label>
+                          <Select value={destinationAccountId} onValueChange={(v) => v && setDestinationAccountId(v)}>
+                            <SelectTrigger id="quick-add-destination" className="h-11 w-full">
+                              <SelectValue placeholder="Select destination">
+                                {destAccount?.name ?? "Select destination"}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.filter((a) => a.id !== accountId).map((a) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label htmlFor="quick-add-account" className="text-sm font-medium">Account</label>
+                        <Select value={accountId} onValueChange={(v) => v && setAccountId(v)}>
+                          <SelectTrigger id="quick-add-account" className="h-11 w-full">
+                            <SelectValue placeholder="Select account">
+                              {sourceAccount?.name ?? "Select account"}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {accounts.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <label htmlFor="quick-add-category" className="text-sm font-medium">Category</label>
+                        <Select value={categoryId} onValueChange={(v) => v && setCategoryId(v)}>
+                          <SelectTrigger id="quick-add-category" className="h-11 w-full">
+                            <SelectValue placeholder="Select category">
+                              {filteredCategories.find((c) => c.id === categoryId)?.name ?? "Select category"}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredCategories.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                <span className="flex items-center gap-2">
+                                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
+                                  {c.name}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   )}
-                </>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <Select value={accountId} onValueChange={(v) => v && setAccountId(v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Account">
-                        {sourceAccount?.name ?? "Account"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>{a.name} ({a.currency})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={categoryId} onValueChange={(v) => v && setCategoryId(v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Category">
-                        {filteredCategories.find((c) => c.id === categoryId)?.name ?? "Category"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCategories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          <span className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                            {c.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
-              )}
 
-              {/* Obligation link (expense only) */}
-              {type === "expense" && unpaidObligations.length > 0 && (
-                <Select
-                  value={obligationId || "__none__"}
-                  onValueChange={(v) => v && setObligationId(v === "__none__" ? "" : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Obligation (optional)">
-                      {unpaidObligations.find((o) => o.id === obligationId)?.name ?? "No obligation"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">None</SelectItem>
-                    {unpaidObligations.map((o) => (
-                      <SelectItem key={o.id} value={o.id}>
-                        {o.name} ({formatCurrency(o.estimatedAmount, o.currency)})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </>
+                <div className="space-y-5">
+                  <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 sm:p-5">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Quick summary</p>
+                      <p className="text-xs text-muted-foreground">
+                        Review the selected type, account, and linked extras before saving.
+                      </p>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs capitalize">{type}</Badge>
+                      {sourceAccount && (
+                        <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">{sourceAccount.name}</Badge>
+                      )}
+                      {type !== "transfer" && categoryId && (
+                        <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+                          {filteredCategories.find((c) => c.id === categoryId)?.name}
+                        </Badge>
+                      )}
+                      {type === "transfer" && destAccount && (
+                        <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">To {destAccount.name}</Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {type === "expense" && unpaidObligations.length > 0 && (
+                    <div className="rounded-2xl border border-border/60 bg-background p-4 shadow-sm sm:p-5">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Link an obligation</p>
+                        <p className="text-xs text-muted-foreground">Optional. Mark an unpaid bill with this movement.</p>
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <label htmlFor="quick-add-obligation" className="text-sm font-medium">Obligation</label>
+                        <Select
+                          value={obligationId || "__none__"}
+                          onValueChange={(v) => v && setObligationId(v === "__none__" ? "" : v)}
+                        >
+                          <SelectTrigger id="quick-add-obligation" className="h-11 w-full">
+                            <SelectValue placeholder="No obligation">
+                              {unpaidObligations.find((o) => o.id === obligationId)?.name ?? "No obligation"}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">None</SelectItem>
+                            {unpaidObligations.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>
+                                {o.name} ({formatCurrency(o.estimatedAmount, o.currency)})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+
+                  {isCrossCurrency && (
+                    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Exchange rate</p>
+                        <p className="text-xs text-muted-foreground">Required when the transfer moves across different currencies.</p>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        <AmountInput
+                          value={exchangeRate}
+                          onChange={setExchangeRate}
+                          placeholder="e.g. 3.70"
+                          className="h-11"
+                        />
+                        {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
+                          <div className="rounded-lg bg-background/80 px-3 py-2 text-xs text-muted-foreground ring-1 ring-border/60">
+                            {sourceAccount?.currency} {amount} x {exchangeRate} = {destAccount?.currency}{" "}
+                            {(parseFloat(amount) * parseFloat(exchangeRate)).toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           ) : (
             <VoiceInput
               speech={speech}
@@ -338,16 +427,20 @@ export function QuickAddSheet({
             />
           )}
         </div>
-
         {mode === "manual" && (
-          <SheetFooter>
-            <Button
-              onClick={handleSubmit}
-              disabled={!canSubmit || isSubmitting}
-              className="w-full"
-            >
-              {isSubmitting ? "Creating..." : "Create Movement"}
-            </Button>
+          <SheetFooter className="border-t border-border/60 bg-muted/20 px-4 py-4 sm:px-6">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 sm:flex-row sm:justify-between">
+              <p className="text-xs text-muted-foreground sm:self-center">
+                {type === "transfer" ? "Transfers use the dedicated Transfer category automatically." : "Quick add saves the movement immediately."}
+              </p>
+              <Button
+                onClick={handleSubmit}
+                disabled={!canSubmit || isSubmitting}
+                className="w-full sm:min-w-[180px] sm:w-auto"
+              >
+                {isSubmitting ? "Creating..." : "Create Movement"}
+              </Button>
+            </div>
           </SheetFooter>
         )}
       </SheetContent>
@@ -373,7 +466,7 @@ function VoiceInput({
     : null;
 
   return (
-    <div className="flex flex-col items-center gap-4 py-4">
+    <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-2xl border border-border/60 bg-background px-4 py-6 shadow-sm sm:px-6">
       <button
         onClick={speech.isListening ? speech.stop : speech.start}
         aria-label={speech.isListening ? "Stop recording" : "Start recording"}
