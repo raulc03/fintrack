@@ -6,7 +6,10 @@
     "build": "pnpm --filter web build",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
-    "test:watch": "pnpm -r test:watch"
+    "test:watch": "pnpm -r test:watch",
+    "test:web:docker": "docker compose --profile test run --rm web-test",
+    "test:api:docker": "docker compose --profile test run --rm api-test",
+    "test:docker": "docker compose --profile test run --rm web-test && docker compose --profile test run --rm api-test"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.0",
