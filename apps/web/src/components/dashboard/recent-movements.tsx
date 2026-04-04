@@ -15,11 +15,11 @@ interface RecentMovementsProps {
 }
 
 export function RecentMovements({ movements, onEdit }: RecentMovementsProps) {
-  const recent = movements.slice(0, 7);
+  const recent = movements.slice(0, 5);
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-sm font-medium">
           Recent Movements
         </CardTitle>
@@ -36,19 +36,19 @@ export function RecentMovements({ movements, onEdit }: RecentMovementsProps) {
             No movements yet.
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             {recent.map((m) => {
               const config = MOVEMENT_TYPE_CONFIG[m.type];
               const Icon = config.icon;
               return (
                 <div
                   key={m.id}
-                  className={`flex items-center justify-between ${onEdit ? "cursor-pointer hover:bg-accent/50 -mx-2 px-2 py-2.5 rounded-lg transition-colors min-h-[44px]" : ""}`}
+                  className={`flex items-center justify-between ${onEdit ? "cursor-pointer hover:bg-accent/50 -mx-2 rounded-lg px-2 py-2 transition-colors" : ""}`}
                   onClick={() => onEdit?.(m)}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`p-1.5 rounded-md bg-muted ${config.color}`}
+                      className={`rounded-md bg-muted p-1.5 ${config.color}`}
                     >
                       <Icon className="h-3.5 w-3.5" />
                     </div>

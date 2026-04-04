@@ -49,20 +49,20 @@ export function BalanceSummary({ accounts, settings }: BalanceSummaryProps) {
   const rateLabel = `1 USD = ${getCurrencySymbol("PEN")} ${rate}`;
 
   return (
-    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 stagger-children">
+    <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 stagger-children">
       {data.map(({ currency, total, change, changePercent, count }) => (
-        <Card key={currency}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total {currency}
+        <Card key={currency} className="border-border/60 bg-card/70">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-2">
+            <CardTitle className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              {currency} Total
             </CardTitle>
             <TrendIcon change={change} />
           </CardHeader>
-          <CardContent>
-            <div className="text-lg sm:text-2xl font-bold truncate tabular-nums">
+          <CardContent className="px-4 pb-4 pt-0">
+            <div className="text-lg font-semibold truncate tabular-nums sm:text-xl">
               {formatCurrency(total, currency)}
             </div>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="mt-1 flex items-center gap-2 text-[11px]">
               <span className={`text-xs font-medium tabular-nums ${changeColor(change)}`}>
                 {change > 0 ? "+" : ""}{changePercent.toFixed(1)}%
               </span>
@@ -75,18 +75,18 @@ export function BalanceSummary({ accounts, settings }: BalanceSummaryProps) {
       ))}
 
       {/* Total balance across currencies */}
-      <Card className="col-span-2 sm:col-span-1">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+      <Card className="border-border/60 bg-card/70 sm:col-span-1">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-2">
+          <CardTitle className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
             Total Balance
           </CardTitle>
           <TrendIcon change={totalChange} />
         </CardHeader>
-        <CardContent>
-          <div className="text-lg sm:text-2xl font-bold truncate tabular-nums">
+        <CardContent className="px-4 pb-4 pt-0">
+          <div className="text-lg font-semibold truncate tabular-nums sm:text-xl">
             {formatCurrency(totalMain, mainCurrency)}
           </div>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="mt-1 flex items-center gap-2 text-[11px]">
             <span className={`text-xs font-medium tabular-nums ${changeColor(totalChange)}`}>
               {totalChange > 0 ? "+" : ""}{totalChangePercent.toFixed(1)}%
             </span>

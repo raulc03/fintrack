@@ -19,11 +19,11 @@ export function BudgetAlerts({ goals }: BudgetAlertsProps) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium">Budget Alerts</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="divide-y divide-border">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {expenseLimits.map((g) => {
             const progress =
               g.targetAmount > 0
@@ -40,7 +40,7 @@ export function BudgetAlerts({ goals }: BudgetAlertsProps) {
                 : "text-green-500";
 
             return (
-              <div key={g.id} className="space-y-2 py-4 first:pt-0 last:pb-0">
+              <div key={g.id} className="rounded-xl border border-border/60 bg-muted/20 p-4">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-sm font-medium">
                     {isOver && (
@@ -62,13 +62,13 @@ export function BudgetAlerts({ goals }: BudgetAlertsProps) {
                   value={Math.min(progress, 100)}
                   className={
                     isOver
-                      ? "progress-gradient-red"
+                      ? "mt-3 progress-gradient-red"
                       : isWarning
-                        ? "progress-gradient-yellow"
-                        : "progress-gradient-green"
+                        ? "mt-3 progress-gradient-yellow"
+                        : "mt-3 progress-gradient-green"
                   }
                 />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                   <span className={statusColor}>
                     {formatCurrency(g.currentAmount, g.currency)}
                   </span>

@@ -80,14 +80,14 @@ export default function DashboardPage() {
         ) : (
           <>
             <BalanceSummary accounts={accounts} settings={settings} />
-            <SpendingChart refreshKey={chartKey} defaultCurrency={settings.mainCurrency} />
-            <div className={grid.split}>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ObligationsSummary obligations={obligations} summaries={obligationSummaries} />
+              <GoalsProgress goals={goals} />
+            </div>
+            <BudgetAlerts goals={goals} />
+            <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.8fr)]">
+              <SpendingChart refreshKey={chartKey} defaultCurrency={settings.mainCurrency} />
               <RecentMovements movements={movements} onEdit={(m) => { setEditingMovement(m); setEditFormOpen(true); }} />
-              <div className="space-y-4">
-                <ObligationsSummary obligations={obligations} summaries={obligationSummaries} />
-                <GoalsProgress goals={goals} />
-                <BudgetAlerts goals={goals} />
-              </div>
             </div>
           </>
         )}

@@ -131,7 +131,7 @@ export function SpendingChart({ refreshKey, defaultCurrency = "PEN" }: SpendingC
         </div>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={220}>
           <BarChart data={data}>
             <XAxis
               dataKey="month"
