@@ -32,7 +32,7 @@ export default function GoalDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { goal, allocations, loading } = useGoal(id);
+  const { goal, allocations, relatedMovements, loading } = useGoal(id);
 
   if (loading) {
     return (
@@ -157,6 +157,42 @@ export default function GoalDetailPage({
                   ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {goal.type === "expense_limit" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>This Month's Movements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {relatedMovements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No expense movements match this budget yet this month.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {relatedMovements.map((movement) => (
+                      <TableRow key={movement.id}>
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(movement.date), "MMM dd, yyyy")}
+                        </TableCell>
+                        <TableCell>{movement.description}</TableCell>
+                        <TableCell className="text-right font-medium text-red-400">
+                          {formatCurrency(movement.amount, movement.currency)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         )}

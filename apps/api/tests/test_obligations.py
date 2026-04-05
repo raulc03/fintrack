@@ -371,15 +371,9 @@ async def test_obligation_history_tracks_paid_and_unpaid_months(auth_client: Asy
         history = await auth_client.get("/api/obligations/history?months=2")
         assert history.status_code == 200
         data = history.json()
-        assert [month["month"] for month in data] == ["2026-02", "2026-01"]
+        assert [month["month"] for month in data] == ["2026-01"]
 
-        feb_item = data[0]["items"][0]
-        assert feb_item["name"] == "Rent"
-        assert feb_item["isPaid"] is False
-        assert feb_item["dueAmount"] == 1200
-        assert feb_item["paidAmount"] == 0
-
-        jan_item = data[1]["items"][0]
+        jan_item = data[0]["items"][0]
         assert jan_item["name"] == "Rent"
         assert jan_item["isPaid"] is True
         assert jan_item["dueAmount"] == 1200

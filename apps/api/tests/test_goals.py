@@ -71,9 +71,9 @@ async def test_expense_limit_history_returns_monthly_consumption(auth_client: As
         data = res.json()
         assert len(data) == 1
         assert data[0]["goalName"] == "Dining Out Limit"
-        assert [month["month"] for month in data[0]["months"]] == ["2026-03", "2026-02", "2026-01"]
-        assert [month["spentAmount"] for month in data[0]["months"]] == [60, 120, 90]
-        assert [round(month["progressPercent"], 1) for month in data[0]["months"]] == [15.0, 30.0, 22.5]
+        assert [month["month"] for month in data[0]["months"]] == ["2026-02", "2026-01"]
+        assert [month["spentAmount"] for month in data[0]["months"]] == [120, 90]
+        assert [round(month["progressPercent"], 1) for month in data[0]["months"]] == [30.0, 22.5]
 
 
 @pytest.mark.asyncio
@@ -118,6 +118,4 @@ async def test_expense_limit_history_starts_at_goal_creation_month(auth_client: 
         res = await auth_client.get("/api/goals/expense-limit-history?months=12")
         assert res.status_code == 200
         data = res.json()
-        assert len(data) == 1
-        assert [month["month"] for month in data[0]["months"]] == ["2026-03"]
-        assert [month["spentAmount"] for month in data[0]["months"]] == [50]
+        assert data == []

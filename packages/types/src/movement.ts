@@ -32,6 +32,7 @@ export interface CreateMovementInput {
 export interface MovementFilters {
   accountId?: string;
   categoryId?: string;
+  currency?: Currency;
   type?: MovementType;
   dateFrom?: string;
   dateTo?: string;

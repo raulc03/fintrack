@@ -44,10 +44,16 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
   const isOverBudget =
     goal.type === "expense_limit" && goal.currentAmount > goal.targetAmount;
 
+  const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("button, [role='menuitem']")) return;
+    router.push(`/goals/${goal.id}`);
+  };
+
   return (
     <Card
       className="cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:bg-accent/50 hover:shadow-lg"
-      onClick={() => router.push(`/goals/${goal.id}`)}
+      onClick={handleCardClick}
     >
       <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2">
         <CardTitle className="min-w-0 text-sm font-medium truncate">{goal.name}</CardTitle>
@@ -72,13 +78,19 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
               />
               <DropdownMenuContent align="end" className="min-w-36">
                 {onEdit && (
-                  <DropdownMenuItem onClick={onEdit}>
+                  <DropdownMenuItem onClick={(event) => {
+                    event.stopPropagation();
+                    onEdit();
+                  }}>
                     <Pencil className="h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
                 )}
                 {onDelete && (
-                  <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                  <DropdownMenuItem variant="destructive" onClick={(event) => {
+                    event.stopPropagation();
+                    onDelete();
+                  }}>
                     <Trash2 className="h-4 w-4" />
                     Delete
                   </DropdownMenuItem>

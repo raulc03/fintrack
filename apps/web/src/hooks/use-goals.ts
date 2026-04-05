@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { financeService } from "@finance/services";
-import type { Goal, CreateGoalInput, GoalAllocation, GoalHistory } from "@finance/types";
+import type { Goal, CreateGoalInput, GoalAllocation, GoalHistory, Movement } from "@finance/types";
 
 const HISTORY_MONTHS = 24;
 
@@ -80,23 +80,52 @@ export function useGoals() {
 export function useGoal(id: string) {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [allocations, setAllocations] = useState<GoalAllocation[]>([]);
+  const [relatedMovements, setRelatedMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      financeService.goals.getById(id),
-      financeService.goals.getAllocations(id),
-    ])
-      .then(([goalData, allocData]) => {
+    financeService.goals.getById(id)
+      .then(async (goalData) => {
+        const allocationPromise = financeService.goals.getAllocations(id);
+
+        if (goalData.type !== "expense_limit" || !goalData.categoryId) {
+          const allocData = await allocationPromise;
+          setGoal(goalData);
+          setAllocations(allocData);
+          setRelatedMovements([]);
+          setError(null);
+          return;
+        }
+
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+        const [allocData, movementData] = await Promise.all([
+          allocationPromise,
+          financeService.movements.getAll(
+            {
+              type: "expense",
+              categoryId: goalData.categoryId,
+              currency: goalData.currency,
+              dateFrom: monthStart.toISOString(),
+              dateTo: monthEnd.toISOString(),
+            },
+            1,
+            100,
+          ),
+        ]);
+
         setGoal(goalData);
         setAllocations(allocData);
+        setRelatedMovements(movementData.data);
         setError(null);
       })
       .catch((e) => setError(e as Error))
       .finally(() => setLoading(false));
   }, [id]);
 
-  return { goal, allocations, loading, error };
+   return { goal, allocations, relatedMovements, loading, error };
 }

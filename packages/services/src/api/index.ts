@@ -67,6 +67,7 @@ class ApiMovementService implements IMovementService {
     if (filters?.type) params.set("type", filters.type);
     if (filters?.accountId) params.set("accountId", filters.accountId);
     if (filters?.categoryId) params.set("categoryId", filters.categoryId);
+    if (filters?.currency) params.set("currency", filters.currency);
     if (filters?.dateFrom) params.set("dateFrom", filters.dateFrom);
     if (filters?.dateTo) params.set("dateTo", filters.dateTo);
     if (filters?.minAmount !== undefined) params.set("minAmount", String(filters.minAmount));

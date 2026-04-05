@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func, or_
@@ -49,6 +50,7 @@ async def get_movements(
     type: str | None = None,
     accountId: str | None = None,
     categoryId: str | None = None,
+    currency: str | None = None,
     dateFrom: str | None = None,
     dateTo: str | None = None,
     minAmount: float | None = None,
@@ -68,6 +70,8 @@ async def get_movements(
         )
     if categoryId:
         query = query.where(Movement.category_id == categoryId)
+    if currency:
+        query = query.where(Movement.currency == currency)
     if dateFrom:
         query = query.where(Movement.date >= parse_date(dateFrom))
     if dateTo:
@@ -182,7 +186,7 @@ async def create_movement(data: CreateMovementInput, user: User = Depends(get_cu
         # All validation passed — now mutate balances
         account.current_balance = float(account.current_balance) - data.amount
         if is_cross_currency:
-            dest_amount = round(data.amount * data.exchangeRate, 2)
+            dest_amount = round(data.amount * cast(float, data.exchangeRate), 2)
             movement.exchange_rate = data.exchangeRate
             movement.destination_amount = dest_amount
             dest.current_balance = float(dest.current_balance) + dest_amount
@@ -249,7 +253,7 @@ async def update_movement(movement_id: str, data: UpdateMovementInput, user: Use
         "exchangeRate": "exchange_rate",
     }
     for field, value in data.model_dump(exclude_unset=True).items():
-        db_field = field_map.get(field, field)
+        db_field = cast(str, field_map.get(field, field))
         if db_field == "date" and value:
             value = parse_date(value)
         setattr(movement, db_field, value)

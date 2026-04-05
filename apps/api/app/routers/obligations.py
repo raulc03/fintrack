@@ -419,14 +419,14 @@ async def get_history(
     await sync_obligations_for_current_month(db, obligations, user.id)
 
     current_month_start = get_month_start(datetime.utcnow())
-    first_month_start = add_months(current_month_start, -(months - 1))
+    first_month_start = add_months(current_month_start, -months)
     history_result = await db.execute(
         select(ObligationHistory)
         .join(Obligation, Obligation.id == ObligationHistory.obligation_id)
         .where(
             Obligation.user_id == user.id,
             ObligationHistory.month_start >= first_month_start,
-            ObligationHistory.month_start < add_months(current_month_start, 1),
+            ObligationHistory.month_start < current_month_start,
         )
         .order_by(ObligationHistory.month_start.desc(), ObligationHistory.name)
     )

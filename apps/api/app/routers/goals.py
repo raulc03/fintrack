@@ -116,8 +116,8 @@ async def get_expense_limit_history(
         return []
 
     current_month_start = get_month_start(datetime.utcnow())
-    first_month_start = add_months(current_month_start, -(months - 1))
-    month_end = add_months(current_month_start, 1)
+    first_month_start = add_months(current_month_start, -months)
+    month_end = current_month_start
     month_starts = [add_months(first_month_start, offset) for offset in range(months)]
 
     pairs = {(goal.category_id, goal.currency) for goal in goals if goal.category_id}
@@ -142,6 +142,9 @@ async def get_expense_limit_history(
         goal_start_month = max(first_month_start, get_month_start(goal.created_at))
         goal_month_starts = [month_start for month_start in month_starts if month_start >= goal_start_month]
         goal_month_starts.reverse()
+
+        if not goal_month_starts:
+            continue
 
         responses.append(
             GoalHistoryResponse(
