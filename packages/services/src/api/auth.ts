@@ -1,6 +1,6 @@
 import type { AuthResponse, LoginInput, SignupInput } from "@finance/types";
 import type { IAuthService } from "../types";
-import { apiRequest } from "./client";
+import { AUTH_EXPIRED_EVENT, apiRequest } from "./client";
 
 const SESSION_KEY = "fintrack_session";
 
@@ -30,7 +30,15 @@ export class ApiAuthService implements IAuthService {
   getSession(): AuthResponse | null {
     if (typeof window === "undefined") return null;
     const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw) as AuthResponse;
+    } catch {
+      localStorage.removeItem(SESSION_KEY);
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+      return null;
+    }
   }
 
   logout(): void {

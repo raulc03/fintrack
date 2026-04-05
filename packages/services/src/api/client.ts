@@ -1,4 +1,5 @@
 const SESSION_KEY = "fintrack_session";
+const AUTH_EXPIRED_EVENT = "fintrack-auth-expired";
 
 function getBaseUrl(): string {
   // In production: empty string = same origin (Next.js rewrites proxy /api/* to FastAPI)
@@ -17,6 +18,14 @@ function getToken(): string | null {
   }
 }
 
+function clearSessionAndNotify() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(SESSION_KEY);
+  window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+}
+
+export { AUTH_EXPIRED_EVENT };
+
 export async function apiRequest<T>(
   path: string,
   options?: RequestInit
@@ -25,6 +34,7 @@ export async function apiRequest<T>(
   const isAuthEndpoint = path.startsWith("/api/auth");
 
   if (!token && !isAuthEndpoint) {
+    clearSessionAndNotify();
     throw new Error("Not authenticated");
   }
 
@@ -36,6 +46,10 @@ export async function apiRequest<T>(
       ...options?.headers,
     },
   });
+
+  if (res.status === 401 && !isAuthEndpoint) {
+    clearSessionAndNotify();
+  }
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));

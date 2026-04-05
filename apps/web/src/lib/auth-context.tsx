@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { authService } from "@finance/services";
+import { authService, AUTH_EXPIRED_EVENT } from "@finance/services";
 import type { User, LoginInput, SignupInput } from "@finance/types";
 import { PUBLIC_ROUTES, ROUTES } from "@/lib/constants";
 
@@ -38,6 +38,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setUser(null);
+      setIsLoading(false);
+      router.replace(ROUTES.LOGIN);
+    };
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, [router]);
 
   // Redirect logic
   useEffect(() => {

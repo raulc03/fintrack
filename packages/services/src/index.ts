@@ -8,4 +8,5 @@ import { ApiAuthService as AuthImpl } from "./api/auth";
 
 export const financeService: IFinanceService = new ServiceImpl();
 export const authService: IAuthService = new AuthImpl();
+export { AUTH_EXPIRED_EVENT } from "./api/client";
 export type { IFinanceService, IAuthService, PaginatedResponse } from "./types";
