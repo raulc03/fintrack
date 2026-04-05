@@ -78,11 +78,11 @@ export const PUBLIC_ROUTES = [ROUTES.LOGIN, ROUTES.SIGNUP];
  */
 export const NAV_ITEMS = [
   { href: ROUTES.HOME, label: "Dashboard", icon: LayoutDashboard },
-  { href: ROUTES.ACCOUNTS, label: "Accounts", icon: Wallet },
   { href: ROUTES.MOVEMENTS, label: "Movements", icon: ArrowLeftRight },
-  { href: ROUTES.CATEGORIES, label: "Categories", icon: Tag },
-  { href: ROUTES.GOALS, label: "Plans", icon: Target },
   { href: ROUTES.OBLIGATIONS, label: "Bills", icon: Receipt },
+  { href: ROUTES.GOALS, label: "Plans", icon: Target },
+  { href: ROUTES.ACCOUNTS, label: "Accounts", icon: Wallet },
+  { href: ROUTES.CATEGORIES, label: "Categories", icon: Tag },
 ];
 
 /**
