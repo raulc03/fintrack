@@ -16,7 +16,7 @@ const PRIMARY_NAV_ITEMS = [
   { href: ROUTES.HOME, label: "Dashboard", icon: LayoutDashboard },
   { href: ROUTES.MOVEMENTS, label: "Movements", icon: ArrowLeftRight },
   { href: ROUTES.OBLIGATIONS, label: "Bills", icon: Receipt },
-  { href: ROUTES.GOALS, label: "Goals", icon: Target },
+  { href: ROUTES.GOALS, label: "Plans", icon: Target },
 ];
 
 const SECONDARY_NAV_ITEMS = [

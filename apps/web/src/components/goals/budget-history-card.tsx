@@ -37,7 +37,7 @@ export function BudgetHistoryCard({ history }: BudgetHistoryCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm font-medium">Budget Consumption History</CardTitle>
+        <CardTitle className="text-sm font-medium">Expense Limit History</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         {history.map((goal) => (
@@ -46,7 +46,7 @@ export function BudgetHistoryCard({ history }: BudgetHistoryCardProps) {
               <div>
                 <p className="text-sm font-medium">{goal.goalName}</p>
                 <p className="text-xs text-muted-foreground">
-                  Monthly spend against {formatCurrency(goal.targetAmount, goal.currency)}
+                  Monthly spend against the {formatCurrency(goal.targetAmount, goal.currency)} expense limit
                 </p>
               </div>
             </div>
@@ -66,7 +66,7 @@ export function BudgetHistoryCard({ history }: BudgetHistoryCardProps) {
                     <Progress value={progress} className={`mt-2 ${isOver ? "progress-gradient-red" : "progress-gradient-yellow"}`} />
                     <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                       <span>{formatCurrency(month.spentAmount, goal.currency)} spent</span>
-                      <span>{formatCurrency(month.targetAmount, goal.currency)} budget</span>
+                      <span>{formatCurrency(month.targetAmount, goal.currency)} limit</span>
                     </div>
                   </div>
                 );

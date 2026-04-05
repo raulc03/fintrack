@@ -81,7 +81,7 @@ export const NAV_ITEMS = [
   { href: ROUTES.ACCOUNTS, label: "Accounts", icon: Wallet },
   { href: ROUTES.MOVEMENTS, label: "Movements", icon: ArrowLeftRight },
   { href: ROUTES.CATEGORIES, label: "Categories", icon: Tag },
-  { href: ROUTES.GOALS, label: "Goals", icon: Target },
+  { href: ROUTES.GOALS, label: "Plans", icon: Target },
   { href: ROUTES.OBLIGATIONS, label: "Bills", icon: Receipt },
 ];
 

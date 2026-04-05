@@ -20,7 +20,7 @@ export function BudgetAlerts({ goals }: BudgetAlertsProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Budget Alerts</CardTitle>
+        <CardTitle className="text-sm font-medium">Expense Limits</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

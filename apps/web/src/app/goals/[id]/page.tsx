@@ -47,7 +47,7 @@ export default function GoalDetailPage({
   if (!goal) {
     return (
       <div className="p-4 md:p-6">
-        <p className="text-muted-foreground">Goal not found.</p>
+        <p className="text-muted-foreground">Plan not found.</p>
       </div>
     );
   }
@@ -110,11 +110,11 @@ export default function GoalDetailPage({
                   {formatCurrency(Math.abs(remaining), goal.currency)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {isOverBudget
-                    ? "Over budget"
-                    : goal.type === "expense_limit"
-                      ? "Remaining"
-                      : remaining > 0
+                    {isOverBudget
+                     ? "Limit exceeded"
+                     : goal.type === "expense_limit"
+                       ? "Remaining"
+                       : remaining > 0
                         ? "To go"
                         : "Completed"}
                 </p>
@@ -168,7 +168,7 @@ export default function GoalDetailPage({
             </CardHeader>
             <CardContent>
               {relatedMovements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No expense movements match this budget yet this month.</p>
+                <p className="text-sm text-muted-foreground">No expense movements match this expense limit yet this month.</p>
               ) : (
                 <Table>
                   <TableHeader>
