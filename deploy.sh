@@ -14,4 +14,8 @@ git checkout "$BRANCH"
 git reset --hard "origin/$BRANCH"
 git clean -fd
 
-docker-compose -f "$COMPOSE_FILE" down && docker-compose -f "$COMPOSE_FILE" up -d --build && docker exec "$API_CONTAINER" /app/.venv/bin/alembic upgrade head
+docker-compose -f "$COMPOSE_FILE" down && \
+docker-compose -f "$COMPOSE_FILE" build api web && \
+docker-compose -f "$COMPOSE_FILE" up -d db && \
+docker-compose -f "$COMPOSE_FILE" run --rm --no-deps api /app/.venv/bin/alembic upgrade head && \
+docker-compose -f "$COMPOSE_FILE" up -d api web
