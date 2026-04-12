@@ -9,6 +9,7 @@ from app.models.goal import Goal, GoalAllocation
 from app.models.movement import Movement
 from app.models.obligation import Obligation
 from app.models.user import User
+from app.models.user_settings import UserSettings
 from app.schemas.budgeting import BudgetBucketSummaryResponse, BudgetSummaryResponse
 from app.timezone import get_month_range_for_timezone, get_user_timezone_name
 
@@ -25,6 +26,20 @@ def get_current_due_amount(obligation: Obligation) -> float:
     return float(obligation.estimated_amount) + float(obligation.carryover_amount)
 
 
+def convert_amount(
+    amount: float, from_currency: str, to_currency: str, usd_to_pen_rate: float
+) -> float:
+    if from_currency == to_currency:
+        return amount
+    if usd_to_pen_rate <= 0:
+        return amount
+    if from_currency == "USD" and to_currency == "PEN":
+        return amount * usd_to_pen_rate
+    if from_currency == "PEN" and to_currency == "USD":
+        return amount / usd_to_pen_rate
+    return amount
+
+
 @router.get("/summary", response_model=BudgetSummaryResponse)
 async def get_budget_summary(
     year: int = Query(...),
@@ -35,13 +50,17 @@ async def get_budget_summary(
 ):
     timezone_name = await get_user_timezone_name(db, user.id)
     start, end = get_month_range_for_timezone(timezone_name, year=year, month=month)
+    settings_result = await db.execute(
+        select(UserSettings).where(UserSettings.user_id == user.id)
+    )
+    user_settings = settings_result.scalar_one_or_none()
+    usd_to_pen_rate = float(user_settings.usd_to_pen_rate) if user_settings else 3.7
 
     movement_result = await db.execute(
         select(Movement, Category.bucket)
         .join(Category, Category.id == Movement.category_id)
         .where(
             Movement.user_id == user.id,
-            Movement.currency == currency,
             Movement.date >= start,
             Movement.date < end,
         )
@@ -50,7 +69,6 @@ async def get_budget_summary(
     obligation_result = await db.execute(
         select(Obligation).where(
             Obligation.user_id == user.id,
-            Obligation.currency == currency,
             Obligation.is_active.is_(True),
         )
     )
@@ -68,12 +86,20 @@ async def get_budget_summary(
 
     for obligation in obligations:
         if obligation.bucket in bucket_fixed_amounts:
-            bucket_fixed_amounts[obligation.bucket] += get_current_due_amount(
-                obligation
+            bucket_fixed_amounts[obligation.bucket] += convert_amount(
+                get_current_due_amount(obligation),
+                obligation.currency,
+                currency,
+                usd_to_pen_rate,
             )
 
     for movement, bucket in movement_rows:
-        amount = float(movement.amount)
+        amount = convert_amount(
+            float(movement.amount),
+            movement.currency,
+            currency,
+            usd_to_pen_rate,
+        )
         if movement.type == "income":
             income += amount
             continue
@@ -87,18 +113,18 @@ async def get_budget_summary(
             unclassified_expense_amount += amount
 
     allocation_result = await db.execute(
-        select(GoalAllocation.amount)
+        select(GoalAllocation.amount, Goal.currency)
         .join(Goal, Goal.id == GoalAllocation.goal_id)
         .where(
             Goal.user_id == user.id,
-            Goal.currency == currency,
             Goal.type.in_(["savings", "investment"]),
             GoalAllocation.date >= start,
             GoalAllocation.date < end,
         )
     )
     bucket_variable_amounts["save_invest"] += sum(
-        float(amount) for amount in allocation_result.scalars().all()
+        convert_amount(float(amount), goal_currency, currency, usd_to_pen_rate)
+        for amount, goal_currency in allocation_result.all()
     )
 
     buckets = []

@@ -169,3 +169,72 @@ async def test_budget_summary_rolls_up_category_buckets_and_goal_allocations(
     assert buckets["save_invest"]["fixedAmount"] == 80
     assert buckets["save_invest"]["variableAmount"] == 120
     assert buckets["save_invest"]["actualAmount"] == 200
+
+
+@pytest.mark.asyncio
+async def test_budget_summary_converts_mixed_currency_activity(
+    auth_client: AsyncClient,
+):
+    categories_response = await auth_client.get("/api/categories")
+    categories = {item["name"]: item["id"] for item in categories_response.json()}
+
+    usd_account = (
+        await auth_client.post(
+            "/api/accounts",
+            json={
+                "name": "Main USD",
+                "currency": "USD",
+                "initialBalance": 0,
+                "color": "#3b82f6",
+            },
+        )
+    ).json()["id"]
+    pen_account = (
+        await auth_client.post(
+            "/api/accounts",
+            json={
+                "name": "Main PEN",
+                "currency": "PEN",
+                "initialBalance": 0,
+                "color": "#10b981",
+            },
+        )
+    ).json()["id"]
+
+    income_response = await auth_client.post(
+        "/api/movements",
+        json={
+            "type": "income",
+            "amount": 2240,
+            "description": "Monthly income",
+            "date": "2026-04-10T12:00:00",
+            "accountId": usd_account,
+            "categoryId": categories["Salary"],
+        },
+    )
+    assert income_response.status_code == 201
+
+    expense_response = await auth_client.post(
+        "/api/movements",
+        json={
+            "type": "expense",
+            "amount": 3791.84,
+            "description": "Rent in PEN",
+            "date": "2026-04-11T12:00:00",
+            "accountId": pen_account,
+            "categoryId": categories["Rent"],
+        },
+    )
+    assert expense_response.status_code == 201
+
+    response = await auth_client.get(
+        "/api/budgeting/summary?year=2026&month=4&currency=USD"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    buckets = {bucket["key"]: bucket for bucket in payload["buckets"]}
+
+    assert payload["income"] == 2240
+    assert round(buckets["necessity"]["targetAmount"], 2) == 1120
+    assert round(buckets["necessity"]["variableAmount"], 2) == 1024.82
