@@ -3,6 +3,7 @@ import type { Currency } from "./account";
 export interface Obligation {
   id: string;
   name: string;
+  bucket: "necessity" | "desire" | "save_invest";
   categoryId: string;
   estimatedAmount: number;
   baseAmount?: number;
@@ -19,6 +20,7 @@ export interface Obligation {
 
 export interface CreateObligationInput {
   name: string;
+  bucket: "necessity" | "desire" | "save_invest";
   categoryId: string;
   estimatedAmount: number;
   currency: Currency;
@@ -27,6 +29,7 @@ export interface CreateObligationInput {
 
 export interface UpdateObligationInput {
   name?: string;
+  bucket?: "necessity" | "desire" | "save_invest";
   categoryId?: string;
   estimatedAmount?: number;
   dueDay?: number;

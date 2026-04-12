@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 class CreateObligationInput(BaseModel):
     name: str = Field(min_length=1)
+    bucket: str | None = None
     categoryId: str
     estimatedAmount: float = Field(gt=0)
     currency: str = Field(min_length=3, max_length=3)
@@ -11,6 +12,7 @@ class CreateObligationInput(BaseModel):
 
 class UpdateObligationInput(BaseModel):
     name: str | None = Field(default=None, min_length=1)
+    bucket: str | None = None
     categoryId: str | None = None
     estimatedAmount: float | None = Field(default=None, gt=0)
     dueDay: int | None = Field(default=None, ge=1, le=31)
@@ -23,6 +25,7 @@ class LinkMovementInput(BaseModel):
 class ObligationResponse(BaseModel):
     id: str
     name: str
+    bucket: str
     categoryId: str
     estimatedAmount: float
     baseAmount: float | None = None
@@ -39,6 +42,7 @@ class ObligationResponse(BaseModel):
 
 class ObligationSummaryResponse(BaseModel):
     currency: str
+    bucket: str | None = None
     totalObligations: float
     paidAmount: float
     pendingAmount: float

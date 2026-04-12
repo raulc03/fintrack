@@ -21,6 +21,10 @@ BUCKET_TARGETS = (
 )
 
 
+def get_current_due_amount(obligation: Obligation) -> float:
+    return float(obligation.estimated_amount) + float(obligation.carryover_amount)
+
+
 @router.get("/summary", response_model=BudgetSummaryResponse)
 async def get_budget_summary(
     year: int = Query(...),
@@ -43,10 +47,30 @@ async def get_budget_summary(
         )
     )
     movement_rows = movement_result.all()
+    obligation_result = await db.execute(
+        select(Obligation).where(
+            Obligation.user_id == user.id,
+            Obligation.currency == currency,
+            Obligation.is_active.is_(True),
+        )
+    )
+    obligations = obligation_result.scalars().all()
+    linked_expense_ids = {
+        obligation.linked_movement_id
+        for obligation in obligations
+        if obligation.linked_movement_id is not None
+    }
 
     income = 0.0
-    bucket_actuals = {key: 0.0 for key, _, _ in BUCKET_TARGETS}
+    bucket_fixed_amounts = {key: 0.0 for key, _, _ in BUCKET_TARGETS}
+    bucket_variable_amounts = {key: 0.0 for key, _, _ in BUCKET_TARGETS}
     unclassified_expense_amount = 0.0
+
+    for obligation in obligations:
+        if obligation.bucket in bucket_fixed_amounts:
+            bucket_fixed_amounts[obligation.bucket] += get_current_due_amount(
+                obligation
+            )
 
     for movement, bucket in movement_rows:
         amount = float(movement.amount)
@@ -55,8 +79,10 @@ async def get_budget_summary(
             continue
         if movement.type != "expense":
             continue
-        if bucket in bucket_actuals:
-            bucket_actuals[bucket] += amount
+        if movement.id in linked_expense_ids:
+            continue
+        if bucket in bucket_variable_amounts:
+            bucket_variable_amounts[bucket] += amount
         else:
             unclassified_expense_amount += amount
 
@@ -71,25 +97,16 @@ async def get_budget_summary(
             GoalAllocation.date < end,
         )
     )
-    bucket_actuals["save_invest"] += sum(
+    bucket_variable_amounts["save_invest"] += sum(
         float(amount) for amount in allocation_result.scalars().all()
-    )
-
-    obligation_result = await db.execute(
-        select(Obligation.id)
-        .where(
-            Obligation.user_id == user.id,
-            Obligation.currency == currency,
-            Obligation.is_active.is_(True),
-            Obligation.carryover_amount > 0,
-        )
-        .limit(1)
     )
 
     buckets = []
     for key, label, percent in BUCKET_TARGETS:
         target_amount = income * percent
-        actual_amount = bucket_actuals[key]
+        fixed_amount = bucket_fixed_amounts[key]
+        variable_amount = bucket_variable_amounts[key]
+        actual_amount = fixed_amount + variable_amount
         remaining_amount = target_amount - actual_amount
         progress_percent = (
             (actual_amount / target_amount * 100) if target_amount > 0 else 0.0
@@ -99,6 +116,8 @@ async def get_budget_summary(
                 key=key,
                 label=label,
                 targetAmount=target_amount,
+                fixedAmount=fixed_amount,
+                variableAmount=variable_amount,
                 actualAmount=actual_amount,
                 remainingAmount=remaining_amount,
                 progressPercent=progress_percent,
@@ -111,6 +130,8 @@ async def get_budget_summary(
         currency=currency,
         income=income,
         unclassifiedExpenseAmount=unclassified_expense_amount,
-        hasDebtPriority=obligation_result.scalar_one_or_none() is not None,
+        hasDebtPriority=any(
+            float(obligation.carryover_amount) > 0 for obligation in obligations
+        ),
         buckets=buckets,
     )

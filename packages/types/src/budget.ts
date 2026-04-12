@@ -4,6 +4,8 @@ export interface BudgetBucketSummary {
   key: "necessity" | "desire" | "save_invest";
   label: string;
   targetAmount: number;
+  fixedAmount: number;
+  variableAmount: number;
   actualAmount: number;
   remainingAmount: number;
   progressPercent: number;

@@ -82,6 +82,38 @@ async def test_budget_summary_rolls_up_category_buckets_and_goal_allocations(
     )
     assert custom_category.status_code == 201
 
+    obligation = await auth_client.post(
+        "/api/obligations",
+        json={
+            "name": "Rent autopay",
+            "bucket": "necessity",
+            "categoryId": categories["Rent"],
+            "estimatedAmount": 400,
+            "currency": "PEN",
+            "dueDay": 10,
+        },
+    )
+    assert obligation.status_code == 201
+
+    savings_obligation = await auth_client.post(
+        "/api/obligations",
+        json={
+            "name": "Monthly saving",
+            "bucket": "save_invest",
+            "categoryId": categories["Transfer"],
+            "estimatedAmount": 80,
+            "currency": "PEN",
+            "dueDay": 12,
+        },
+    )
+    assert savings_obligation.status_code == 201
+
+    linked = await auth_client.patch(
+        f"/api/obligations/{obligation.json()['id']}/link",
+        json={"movementId": necessity.json()["id"]},
+    )
+    assert linked.status_code == 200
+
     unclassified = await auth_client.post(
         "/api/movements",
         json={
@@ -127,7 +159,13 @@ async def test_budget_summary_rolls_up_category_buckets_and_goal_allocations(
     assert payload["unclassifiedExpenseAmount"] == 50
     assert buckets["necessity"]["targetAmount"] == 500
     assert buckets["necessity"]["actualAmount"] == 400
+    assert buckets["necessity"]["fixedAmount"] == 400
+    assert buckets["necessity"]["variableAmount"] == 0
     assert buckets["desire"]["targetAmount"] == 300
     assert buckets["desire"]["actualAmount"] == 150
+    assert buckets["desire"]["fixedAmount"] == 0
+    assert buckets["desire"]["variableAmount"] == 150
     assert buckets["save_invest"]["targetAmount"] == 200
-    assert buckets["save_invest"]["actualAmount"] == 120
+    assert buckets["save_invest"]["fixedAmount"] == 80
+    assert buckets["save_invest"]["variableAmount"] == 120
+    assert buckets["save_invest"]["actualAmount"] == 200

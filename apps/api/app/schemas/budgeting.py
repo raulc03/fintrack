@@ -5,6 +5,8 @@ class BudgetBucketSummaryResponse(BaseModel):
     key: str
     label: str
     targetAmount: float
+    fixedAmount: float
+    variableAmount: float
     actualAmount: float
     remainingAmount: float
     progressPercent: float
