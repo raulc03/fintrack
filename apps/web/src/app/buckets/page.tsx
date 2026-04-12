@@ -161,14 +161,16 @@ export default function BucketsPage() {
       />
       <div className="space-y-6 p-4 pb-24 md:p-6">
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-sm font-medium">Monthly Budget Workspace</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-lg font-semibold">Monthly Budget Workspace</CardTitle>
+              <p className="mt-2 text-base text-muted-foreground">
                 Manage fixed commitments and variable monthly activity from the same place.
               </p>
             </div>
-            <Badge variant="secondary">{formatCurrencyWithMainConversion(summary.income, summary.currency, settings.mainCurrency, settings.usdToPenRate)} income</Badge>
+            <Badge variant="secondary" className="w-fit max-w-full whitespace-normal break-words px-3 py-1 text-sm">
+              {formatCurrencyWithMainConversion(summary.income, summary.currency, settings.mainCurrency, settings.usdToPenRate)} income
+            </Badge>
           </CardHeader>
         </Card>
 
@@ -191,15 +193,15 @@ export default function BucketsPage() {
                 className={`min-h-[132px] w-full items-start justify-start rounded-2xl border border-transparent px-4 py-4 text-left shadow-none transition-all hover:border-border/70 hover:bg-background/40 ${BUCKET_TONE_STYLES[bucket.key].ring}`}
               >
                 <div className="flex w-full flex-col items-start gap-3">
-                  <div className="flex w-full items-start justify-between gap-3">
+                  <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-1">
                       <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${BUCKET_TONE_STYLES[bucket.key].soft}`}>
                         {bucket.percentOfIncome.toFixed(0)}%
                       </div>
                       <div className="text-base font-semibold text-foreground">{bucket.label}</div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-semibold text-foreground">{formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</div>
+                    <div className="text-left sm:text-right">
+                      <div className="text-lg font-semibold leading-tight text-foreground sm:text-xl">{formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</div>
                       <div className="text-[11px] text-muted-foreground">spent this month</div>
                     </div>
                   </div>
@@ -211,7 +213,7 @@ export default function BucketsPage() {
                         style={{ width: `${Math.min(bucket.progressPercent, 100)}%` }}
                       />
                     </div>
-                    <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex w-full flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                       <span>Target {formatCurrencyWithMainConversion(bucket.targetAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</span>
                       <span>{bucket.remainingAmount >= 0 ? `${formatCurrencyWithMainConversion(bucket.remainingAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} left` : `${formatCurrencyWithMainConversion(Math.abs(bucket.remainingAmount), summary.currency, settings.mainCurrency, settings.usdToPenRate)} over`}</span>
                     </div>
@@ -238,16 +240,16 @@ export default function BucketsPage() {
               <TabsContent key={bucket.key} value={bucket.key} className="mt-0">
                 <Card>
                   <CardHeader className="gap-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <CardTitle className="text-base font-semibold">{meta.label}</CardTitle>
-                        <p className="mt-1 text-sm text-muted-foreground">{meta.description}</p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-lg font-semibold">{meta.label}</CardTitle>
+                        <p className="mt-1 text-sm text-muted-foreground sm:text-base">{meta.description}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={bucket.isOver ? "outline" : "secondary"}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={bucket.isOver ? "outline" : "secondary"} className="max-w-full whitespace-normal break-words px-3 py-1 text-sm">
                           {formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} total
                         </Badge>
-                        <Button size="sm" onClick={() => setMovementBucket(bucket.key)}>
+                        <Button size="sm" className="w-full sm:w-auto" onClick={() => setMovementBucket(bucket.key)}>
                           <Plus className="mr-1 h-4 w-4" />
                           Add movement
                         </Button>
