@@ -37,6 +37,24 @@ const BUCKET_MOVEMENT_COPY: Record<string, { type: MovementType; description: st
 
 const BUCKET_ORDER = ["necessity", "desire", "save_invest"] as const;
 
+const BUCKET_TONE_STYLES: Record<(typeof BUCKET_ORDER)[number], { accent: string; soft: string; ring: string }> = {
+  necessity: {
+    accent: "bg-rose-500",
+    soft: "bg-rose-500/10 text-rose-200",
+    ring: "data-active:border-rose-500/50 data-active:bg-rose-500/10",
+  },
+  desire: {
+    accent: "bg-amber-400",
+    soft: "bg-amber-400/10 text-amber-100",
+    ring: "data-active:border-amber-400/50 data-active:bg-amber-400/10",
+  },
+  save_invest: {
+    accent: "bg-emerald-500",
+    soft: "bg-emerald-500/10 text-emerald-200",
+    ring: "data-active:border-emerald-500/50 data-active:bg-emerald-500/10",
+  },
+};
+
 function getValidBucket(value: string | null): (typeof BUCKET_ORDER)[number] {
   return BUCKET_ORDER.includes(value as (typeof BUCKET_ORDER)[number])
     ? (value as (typeof BUCKET_ORDER)[number])
@@ -165,18 +183,39 @@ export default function BucketsPage() {
           }}
           className="gap-4"
         >
-          <TabsList className="grid w-full grid-cols-1 items-stretch gap-2 rounded-2xl bg-muted/30 p-2 !h-auto md:grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 items-stretch gap-3 rounded-3xl border border-border/60 bg-muted/20 p-3 !h-auto md:grid-cols-3">
             {summary.buckets.map((bucket) => (
               <TabsTrigger
                 key={bucket.key}
                 value={bucket.key}
-                className="min-h-[96px] w-full items-start justify-start rounded-xl border border-transparent px-4 py-3 text-left data-active:border-border/70 data-active:bg-background"
+                className={`min-h-[132px] w-full items-start justify-start rounded-2xl border border-transparent px-4 py-4 text-left shadow-none transition-all hover:border-border/70 hover:bg-background/40 ${BUCKET_TONE_STYLES[bucket.key].ring}`}
               >
-                <div className="flex w-full flex-col items-start gap-1">
-                  <span className="text-sm font-semibold text-foreground">{bucket.label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatCurrency(bucket.actualAmount, summary.currency)} of {formatCurrency(bucket.targetAmount, summary.currency)}
-                  </span>
+                <div className="flex w-full flex-col items-start gap-3">
+                  <div className="flex w-full items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${BUCKET_TONE_STYLES[bucket.key].soft}`}>
+                        {bucket.percentOfIncome.toFixed(0)}%
+                      </div>
+                      <div className="text-base font-semibold text-foreground">{bucket.label}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-semibold text-foreground">{formatCurrency(bucket.actualAmount, summary.currency)}</div>
+                      <div className="text-[11px] text-muted-foreground">spent this month</div>
+                    </div>
+                  </div>
+
+                  <div className="w-full space-y-2">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-background/80">
+                      <div
+                        className={`h-full rounded-full ${BUCKET_TONE_STYLES[bucket.key].accent}`}
+                        style={{ width: `${Math.min(bucket.progressPercent, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+                      <span>Target {formatCurrency(bucket.targetAmount, summary.currency)}</span>
+                      <span>{bucket.remainingAmount >= 0 ? `${formatCurrency(bucket.remainingAmount, summary.currency)} left` : `${formatCurrency(Math.abs(bucket.remainingAmount), summary.currency)} over`}</span>
+                    </div>
+                  </div>
                 </div>
               </TabsTrigger>
             ))}
