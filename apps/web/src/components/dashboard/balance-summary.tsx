@@ -12,9 +12,9 @@ interface BalanceSummaryProps {
 }
 
 function TrendIcon({ change }: { change: number }) {
-  if (change > 0) return <TrendingUp className="h-3.5 w-3.5 text-green-500 sm:h-4 sm:w-4" aria-hidden="true" />;
-  if (change < 0) return <TrendingDown className="h-3.5 w-3.5 text-red-500 sm:h-4 sm:w-4" aria-hidden="true" />;
-  return <Minus className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" aria-hidden="true" />;
+  if (change > 0) return <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" aria-hidden="true" />;
+  if (change < 0) return <TrendingDown className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" aria-hidden="true" />;
+  return <Minus className="h-4 w-4 text-muted-foreground sm:h-5 sm:w-5" aria-hidden="true" />;
 }
 
 function changeColor(change: number) {
@@ -90,20 +90,20 @@ function SummaryCard({
   return (
     <Card className="min-w-[168px] snap-start border-border/60 bg-card/70 sm:min-w-0">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 px-3 pt-3 pb-1.5 sm:px-4 sm:pt-4 sm:pb-2">
-        <CardTitle className="pr-3 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:text-xs sm:tracking-[0.16em]">
+        <CardTitle className="pr-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground sm:text-sm sm:tracking-[0.18em]">
           {title}
         </CardTitle>
         <TrendIcon change={change} />
       </CardHeader>
       <CardContent className="px-3 pb-3 pt-0 sm:px-4 sm:pb-4">
-        <div className="text-[1.35rem] font-semibold leading-none tabular-nums sm:text-xl">
+        <div className="text-[1.6rem] font-semibold leading-none tabular-nums sm:text-3xl">
           {value}
         </div>
-        <div className="mt-2 flex items-center gap-2 text-xs sm:mt-1 sm:gap-2 sm:text-[11px]">
-          <span className={`text-xs font-medium tabular-nums sm:text-xs ${changeColor(change)}`}>
+        <div className="mt-2 flex items-center gap-2 text-sm sm:mt-2 sm:gap-2 sm:text-sm">
+          <span className={`text-sm font-medium tabular-nums sm:text-sm ${changeColor(change)}`}>
             {changeLabel}
           </span>
-          <span className="text-xs text-muted-foreground sm:text-xs">
+          <span className="text-sm text-muted-foreground sm:text-sm">
             {meta}
           </span>
         </div>

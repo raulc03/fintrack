@@ -46,16 +46,16 @@ export function BudgetRuleSummary() {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
-          <CardTitle className="text-sm font-medium">50 / 30 / 20 This Month</CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <CardTitle className="text-lg font-semibold sm:text-xl">50 / 30 / 20 This Month</CardTitle>
+          <p className="mt-2 text-base text-muted-foreground">
             Fixed commitments and variable activity are grouped inside each bucket for this month.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={overLimitBuckets.length > 0 || summary.unclassifiedExpenseAmount > 0 ? "outline" : "secondary"}>
+          <Badge variant={overLimitBuckets.length > 0 || summary.unclassifiedExpenseAmount > 0 ? "outline" : "secondary"} className="px-3 py-1 text-sm">
             {formatCurrencyWithMainConversion(summary.income, summary.currency, settings.mainCurrency, settings.usdToPenRate)} income
           </Badge>
-          <Link href="/buckets" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+          <Link href="/buckets" className={buttonVariants({ variant: "ghost", size: "sm", className: "text-sm" })}>
             Open buckets
           </Link>
         </div>
@@ -74,25 +74,25 @@ export function BudgetRuleSummary() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium">{bucket.label}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-lg font-semibold">{bucket.label}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                       Target {formatCurrencyWithMainConversion(bucket.targetAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}
                     </p>
                   </div>
-                  <span className={`text-xs font-medium ${toneClass}`}>{bucket.progressPercent.toFixed(0)}%</span>
+                  <span className={`text-sm font-medium ${toneClass}`}>{bucket.progressPercent.toFixed(0)}%</span>
                 </div>
                 <Progress value={progress} className={`mt-3 ${bucket.isOver ? "progress-gradient-red" : "progress-gradient-green"}`} />
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                   <div className="rounded-lg border border-border/50 bg-background/60 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Fixed</p>
-                    <p className="mt-1 font-medium text-foreground">{formatCurrencyWithMainConversion(bucket.fixedAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Fixed</p>
+                    <p className="mt-1.5 text-base font-medium text-foreground">{formatCurrencyWithMainConversion(bucket.fixedAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</p>
                   </div>
                   <div className="rounded-lg border border-border/50 bg-background/60 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Variable</p>
-                    <p className="mt-1 font-medium text-foreground">{formatCurrencyWithMainConversion(bucket.variableAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Variable</p>
+                    <p className="mt-1.5 text-base font-medium text-foreground">{formatCurrencyWithMainConversion(bucket.variableAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</p>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
                   <span>{formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} total</span>
                   <span className={bucket.remainingAmount < 0 ? "text-red-500" : "text-muted-foreground"}>
                     {bucket.remainingAmount >= 0
@@ -106,7 +106,7 @@ export function BudgetRuleSummary() {
         </div>
 
         <div className="rounded-xl border border-border/60 bg-background/60 p-4">
-          <div className="flex items-center gap-2 text-sm font-medium">
+          <div className="flex items-center gap-2 text-base font-medium">
             {recommendations[0].includes("within") ? (
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             ) : recommendations[0].includes("debt") ? (
@@ -116,7 +116,7 @@ export function BudgetRuleSummary() {
             )}
             What to do next
           </div>
-          <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+          <div className="mt-3 space-y-2 text-base text-muted-foreground">
             {recommendations.map((recommendation) => (
               <p key={recommendation}>{recommendation}</p>
             ))}
