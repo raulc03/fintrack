@@ -392,7 +392,9 @@ function ObligationCreateInline({
         <Input placeholder="e.g. Rent" value={name} onChange={(event) => setName(event.target.value)} />
         <Select value={categoryId} onValueChange={(value) => value && setCategoryId(value)}>
           <SelectTrigger>
-            <SelectValue placeholder="Select category" />
+            <SelectValue placeholder="Select category">
+              {categories.find((category) => category.id === categoryId)?.name ?? "Select category"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
