@@ -29,3 +29,16 @@ export function convertCurrency(amount: number, from: Currency, to: Currency, us
   if (from === "PEN" && to === "USD") return amount / usdToPenRate;
   return amount;
 }
+
+export function formatCurrencyWithMainConversion(
+  amount: number,
+  currency: Currency,
+  mainCurrency: Currency,
+  usdToPenRate: number
+): string {
+  const primary = formatCurrency(amount, currency);
+  if (currency === mainCurrency) return primary;
+
+  const converted = convertCurrency(amount, currency, mainCurrency, usdToPenRate);
+  return `${primary} (${formatCurrency(converted, mainCurrency)})`;
+}

@@ -21,7 +21,7 @@ import { useCategories } from "@/hooks/use-categories";
 import { useGoals } from "@/hooks/use-goals";
 import { useMovements } from "@/hooks/use-movements";
 import { useObligations } from "@/hooks/use-obligations";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency, formatCurrencyWithMainConversion } from "@/lib/currency";
 import { getBudgetBucketMeta } from "@/lib/budgeting";
 import { ROUTES } from "@/lib/constants";
 import { formatDateInTimeZone } from "@/lib/date";
@@ -168,7 +168,7 @@ export default function BucketsPage() {
                 Manage fixed commitments and variable monthly activity from the same place.
               </p>
             </div>
-            <Badge variant="secondary">{formatCurrency(summary.income, summary.currency)} income</Badge>
+            <Badge variant="secondary">{formatCurrencyWithMainConversion(summary.income, summary.currency, settings.mainCurrency, settings.usdToPenRate)} income</Badge>
           </CardHeader>
         </Card>
 
@@ -199,7 +199,7 @@ export default function BucketsPage() {
                       <div className="text-base font-semibold text-foreground">{bucket.label}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-semibold text-foreground">{formatCurrency(bucket.actualAmount, summary.currency)}</div>
+                      <div className="text-lg font-semibold text-foreground">{formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</div>
                       <div className="text-[11px] text-muted-foreground">spent this month</div>
                     </div>
                   </div>
@@ -212,8 +212,8 @@ export default function BucketsPage() {
                       />
                     </div>
                     <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
-                      <span>Target {formatCurrency(bucket.targetAmount, summary.currency)}</span>
-                      <span>{bucket.remainingAmount >= 0 ? `${formatCurrency(bucket.remainingAmount, summary.currency)} left` : `${formatCurrency(Math.abs(bucket.remainingAmount), summary.currency)} over`}</span>
+                      <span>Target {formatCurrencyWithMainConversion(bucket.targetAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</span>
+                      <span>{bucket.remainingAmount >= 0 ? `${formatCurrencyWithMainConversion(bucket.remainingAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} left` : `${formatCurrencyWithMainConversion(Math.abs(bucket.remainingAmount), summary.currency, settings.mainCurrency, settings.usdToPenRate)} over`}</span>
                     </div>
                   </div>
                 </div>
@@ -245,7 +245,7 @@ export default function BucketsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant={bucket.isOver ? "outline" : "secondary"}>
-                          {formatCurrency(bucket.actualAmount, summary.currency)} total
+                          {formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} total
                         </Badge>
                         <Button size="sm" onClick={() => setMovementBucket(bucket.key)}>
                           <Plus className="mr-1 h-4 w-4" />
@@ -255,10 +255,10 @@ export default function BucketsPage() {
                     </div>
                     <Progress value={Math.min(bucket.progressPercent, 100)} className={bucket.isOver ? "progress-gradient-red" : "progress-gradient-green"} />
                     <div className="grid gap-3 md:grid-cols-4">
-                      <SummaryMini label="Target" value={formatCurrency(bucket.targetAmount, summary.currency)} />
-                      <SummaryMini label="Fixed" value={formatCurrency(bucket.fixedAmount, summary.currency)} />
-                      <SummaryMini label="Variable" value={formatCurrency(bucket.variableAmount, summary.currency)} />
-                      <SummaryMini label={bucket.remainingAmount >= 0 ? "Left" : "Over"} value={formatCurrency(Math.abs(bucket.remainingAmount), summary.currency)} tone={bucket.remainingAmount >= 0 ? "default" : "danger"} />
+                      <SummaryMini label="Target" value={formatCurrencyWithMainConversion(bucket.targetAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} />
+                      <SummaryMini label="Fixed" value={formatCurrencyWithMainConversion(bucket.fixedAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} />
+                      <SummaryMini label="Variable" value={formatCurrencyWithMainConversion(bucket.variableAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} />
+                      <SummaryMini label={bucket.remainingAmount >= 0 ? "Left" : "Over"} value={formatCurrencyWithMainConversion(Math.abs(bucket.remainingAmount), summary.currency, settings.mainCurrency, settings.usdToPenRate)} tone={bucket.remainingAmount >= 0 ? "default" : "danger"} />
                     </div>
                   </CardHeader>
                   <CardContent className="grid gap-4 lg:grid-cols-2">

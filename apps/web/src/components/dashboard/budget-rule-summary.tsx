@@ -7,10 +7,12 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency, formatCurrencyWithMainConversion } from "@/lib/currency";
 import { useBudgetSummary } from "@/hooks/use-budget-summary";
+import { useSettings } from "@/hooks/use-settings";
 
 export function BudgetRuleSummary() {
+  const { settings } = useSettings();
   const { summary, loading, error } = useBudgetSummary();
 
   if (loading) {
@@ -51,7 +53,7 @@ export function BudgetRuleSummary() {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={overLimitBuckets.length > 0 || summary.unclassifiedExpenseAmount > 0 ? "outline" : "secondary"}>
-            {formatCurrency(summary.income, summary.currency)} income
+            {formatCurrencyWithMainConversion(summary.income, summary.currency, settings.mainCurrency, settings.usdToPenRate)} income
           </Badge>
           <Link href="/buckets" className={buttonVariants({ variant: "ghost", size: "sm" })}>
             Open buckets
@@ -73,7 +75,9 @@ export function BudgetRuleSummary() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium">{bucket.label}</p>
-                    <p className="text-xs text-muted-foreground">Target {formatCurrency(bucket.targetAmount, summary.currency)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Target {formatCurrencyWithMainConversion(bucket.targetAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}
+                    </p>
                   </div>
                   <span className={`text-xs font-medium ${toneClass}`}>{bucket.progressPercent.toFixed(0)}%</span>
                 </div>
@@ -81,17 +85,19 @@ export function BudgetRuleSummary() {
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                   <div className="rounded-lg border border-border/50 bg-background/60 px-3 py-2">
                     <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Fixed</p>
-                    <p className="mt-1 font-medium text-foreground">{formatCurrency(bucket.fixedAmount, summary.currency)}</p>
+                    <p className="mt-1 font-medium text-foreground">{formatCurrencyWithMainConversion(bucket.fixedAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</p>
                   </div>
                   <div className="rounded-lg border border-border/50 bg-background/60 px-3 py-2">
                     <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Variable</p>
-                    <p className="mt-1 font-medium text-foreground">{formatCurrency(bucket.variableAmount, summary.currency)}</p>
+                    <p className="mt-1 font-medium text-foreground">{formatCurrencyWithMainConversion(bucket.variableAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</p>
                   </div>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{formatCurrency(bucket.actualAmount, summary.currency)} total</span>
+                  <span>{formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} total</span>
                   <span className={bucket.remainingAmount < 0 ? "text-red-500" : "text-muted-foreground"}>
-                    {bucket.remainingAmount >= 0 ? `${formatCurrency(bucket.remainingAmount, summary.currency)} left` : `${formatCurrency(Math.abs(bucket.remainingAmount), summary.currency)} over`}
+                    {bucket.remainingAmount >= 0
+                      ? `${formatCurrencyWithMainConversion(bucket.remainingAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} left`
+                      : `${formatCurrencyWithMainConversion(Math.abs(bucket.remainingAmount), summary.currency, settings.mainCurrency, settings.usdToPenRate)} over`}
                   </span>
                 </div>
               </Link>
