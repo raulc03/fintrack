@@ -165,11 +165,19 @@ export default function BucketsPage() {
           }}
           className="gap-4"
         >
-          <TabsList className="grid h-auto w-full grid-cols-1 gap-2 rounded-2xl bg-muted/30 p-2 md:grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 items-stretch gap-2 rounded-2xl bg-muted/30 p-2 !h-auto md:grid-cols-3">
             {summary.buckets.map((bucket) => (
-              <TabsTrigger key={bucket.key} value={bucket.key} className="h-auto min-h-20 flex-col items-start gap-1 rounded-xl px-4 py-3 text-left">
-                <span className="text-sm font-semibold text-foreground">{bucket.label}</span>
-                <span className="text-xs text-muted-foreground">{formatCurrency(bucket.actualAmount, summary.currency)} of {formatCurrency(bucket.targetAmount, summary.currency)}</span>
+              <TabsTrigger
+                key={bucket.key}
+                value={bucket.key}
+                className="min-h-[96px] w-full items-start justify-start rounded-xl border border-transparent px-4 py-3 text-left data-active:border-border/70 data-active:bg-background"
+              >
+                <div className="flex w-full flex-col items-start gap-1">
+                  <span className="text-sm font-semibold text-foreground">{bucket.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatCurrency(bucket.actualAmount, summary.currency)} of {formatCurrency(bucket.targetAmount, summary.currency)}
+                  </span>
+                </div>
               </TabsTrigger>
             ))}
           </TabsList>
@@ -188,7 +196,7 @@ export default function BucketsPage() {
             const meta = getBudgetBucketMeta(bucket.key);
 
             return (
-              <TabsContent key={bucket.key} value={bucket.key}>
+              <TabsContent key={bucket.key} value={bucket.key} className="mt-0">
                 <Card>
                   <CardHeader className="gap-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
