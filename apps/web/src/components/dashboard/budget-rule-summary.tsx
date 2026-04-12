@@ -44,15 +44,18 @@ export function BudgetRuleSummary() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-3">
-        <div>
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
           <CardTitle className="text-lg font-semibold sm:text-xl">50 / 30 / 20 This Month</CardTitle>
           <p className="mt-2 text-base text-muted-foreground">
             Fixed commitments and variable activity are grouped inside each bucket for this month.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={overLimitBuckets.length > 0 || summary.unclassifiedExpenseAmount > 0 ? "outline" : "secondary"} className="px-3 py-1 text-sm">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <Badge
+            variant={overLimitBuckets.length > 0 || summary.unclassifiedExpenseAmount > 0 ? "outline" : "secondary"}
+            className="max-w-full px-3 py-1 text-sm whitespace-normal break-words"
+          >
             {formatCurrencyWithMainConversion(summary.income, summary.currency, settings.mainCurrency, settings.usdToPenRate)} income
           </Badge>
           <Link href="/buckets" className={buttonVariants({ variant: "ghost", size: "sm", className: "text-sm" })}>
