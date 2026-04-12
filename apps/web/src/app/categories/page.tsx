@@ -4,21 +4,24 @@ import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { useCategories } from "@/hooks/use-categories";
 import { CategoryForm } from "@/components/categories/category-form";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trash2, Tag } from "lucide-react";
 import { getCategoryIcon } from "@/lib/category-icons";
+import { BUDGET_BUCKETS, getBudgetBucketMeta } from "@/lib/budgeting";
 import { toast } from "sonner";
 import type { Category, CategoryType, CreateCategoryInput } from "@finance/types";
 
 export default function CategoriesPage() {
-  const { categories, loading, create, remove } = useCategories();
+  const { categories, loading, create, update, remove } = useCategories();
   const [formOpen, setFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("expense");
 
   const expenseCategories = categories.filter((c) => c.type === "expense");
   const incomeCategories = categories.filter((c) => c.type === "income");
+  const unclassifiedExpenseCategories = expenseCategories.filter((c) => !c.bucket);
 
   const handleCreate = async (data: CreateCategoryInput) => {
     await create(data);
@@ -28,6 +31,11 @@ export default function CategoriesPage() {
   const handleDelete = async (id: string, name: string) => {
     await remove(id);
     toast.success(`"${name}" deleted`);
+  };
+
+  const handleAssignBucket = async (id: string, bucket: NonNullable<Category["bucket"]>) => {
+    await update(id, { bucket });
+    toast.success("Bucket assigned");
   };
 
   return (
@@ -59,6 +67,10 @@ export default function CategoriesPage() {
             </TabsList>
 
             <TabsContent value="expense" className="mt-4">
+              <BucketReviewCard
+                categories={unclassifiedExpenseCategories}
+                onAssignBucket={handleAssignBucket}
+              />
               <CategoryGrid
                 categories={expenseCategories}
                 onDelete={handleDelete}
@@ -128,6 +140,11 @@ function CategoryGrid({
             <span className="text-xs font-medium text-center truncate w-full px-1">
               {cat.name}
             </span>
+            {cat.type === "expense" && cat.bucket && (
+              <Badge variant="outline" className="h-6 px-2 text-[10px]">
+                {getBudgetBucketMeta(cat.bucket).label}
+              </Badge>
+            )}
             {!cat.isDefault && (
               <Button
                 variant="ghost"
@@ -142,6 +159,57 @@ function CategoryGrid({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function BucketReviewCard({
+  categories,
+  onAssignBucket,
+}: {
+  categories: Category[];
+  onAssignBucket: (id: string, bucket: NonNullable<Category["bucket"]>) => void | Promise<void>;
+}) {
+  if (categories.length === 0) return null;
+
+  return (
+    <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-medium">Review unclassified expenses</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Assign each expense category to the 50/30/20 model before trusting the dashboard guidance.
+          </p>
+        </div>
+        <Badge variant="outline" className="h-6 border-amber-500/30 bg-transparent text-amber-600">
+          {categories.length} to review
+        </Badge>
+      </div>
+      <div className="mt-4 space-y-3">
+        {categories.map((category) => (
+          <div key={category.id} className="rounded-xl border border-border/60 bg-background/70 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">{category.name}</p>
+                <p className="text-xs text-muted-foreground">Choose the bucket that should drive monthly advice for this category.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {BUDGET_BUCKETS.map((bucket) => (
+                  <Button
+                    key={bucket.value}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAssignBucket(category.id, bucket.value)}
+                  >
+                    {bucket.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

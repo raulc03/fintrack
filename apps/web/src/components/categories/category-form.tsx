@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { CategoryType } from "@finance/types";
+import { useEffect, useState } from "react";
+import type { CategoryBucket, CategoryType } from "@finance/types";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { CATEGORY_COLORS } from "@/lib/constants";
+import { BUDGET_BUCKETS, getBudgetBucketMeta } from "@/lib/budgeting";
 import { cn } from "@/lib/utils";
 
 const ICONS = [
@@ -46,6 +47,7 @@ interface CategoryFormProps {
   onSubmit: (data: {
     name: string;
     type: CategoryType;
+    bucket?: CategoryBucket;
     icon: string;
     color: string;
   }) => void;
@@ -60,15 +62,29 @@ export function CategoryForm({
 }: CategoryFormProps) {
   const [name, setName] = useState("");
   const [type, setType] = useState<CategoryType>(defaultType);
+  const [bucket, setBucket] = useState<CategoryBucket>("necessity");
   const [icon, setIcon] = useState(ICONS[0]);
   const [color, setColor] = useState(CATEGORY_COLORS[0]);
+
+  useEffect(() => {
+    if (!open) return;
+    setType(defaultType);
+    setBucket("necessity");
+  }, [defaultType, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onSubmit({ name: name.trim(), type, icon, color });
+    onSubmit({
+      name: name.trim(),
+      type,
+      bucket: type === "expense" ? bucket : undefined,
+      icon,
+      color,
+    });
     setName("");
     setType(defaultType);
+    setBucket("necessity");
     setIcon(ICONS[0]);
     setColor(CATEGORY_COLORS[0]);
     onOpenChange(false);
@@ -113,7 +129,10 @@ export function CategoryForm({
             <label htmlFor="category-type" className="text-sm font-medium">Type</label>
             <Select
               value={type}
-              onValueChange={(v) => v && setType(v as CategoryType)}
+              onValueChange={(v) => {
+                if (!v) return;
+                setType(v as CategoryType);
+              }}
             >
               <SelectTrigger id="category-type">
                 <SelectValue />
@@ -124,6 +143,30 @@ export function CategoryForm({
               </SelectContent>
             </Select>
           </div>
+
+          {type === "expense" && (
+            <div className="space-y-2">
+              <label htmlFor="category-bucket" className="text-sm font-medium">50/30/20 Bucket</label>
+              <Select
+                value={bucket}
+                onValueChange={(value) => value && setBucket(value as CategoryBucket)}
+              >
+                <SelectTrigger id="category-bucket">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BUDGET_BUCKETS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {getBudgetBucketMeta(bucket).description}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Icon</label>

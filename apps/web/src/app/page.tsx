@@ -11,7 +11,7 @@ const SpendingChart = dynamic(
 );
 import { RecentMovements } from "@/components/dashboard/recent-movements";
 import { GoalsProgress } from "@/components/dashboard/goals-progress";
-import { BudgetAlerts } from "@/components/dashboard/budget-alerts";
+import { BudgetRuleSummary } from "@/components/dashboard/budget-rule-summary";
 import { ObligationsSummary } from "@/components/dashboard/obligations-summary";
 import { QuickAddFab } from "@/components/dashboard/quick-add-fab";
 import { QuickAddSheet } from "@/components/dashboard/quick-add-sheet";
@@ -84,7 +84,7 @@ export default function DashboardPage() {
               <ObligationsSummary obligations={obligations} summaries={obligationSummaries} />
               <GoalsProgress goals={goals} />
             </div>
-            <BudgetAlerts goals={goals} />
+            <BudgetRuleSummary />
             <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.8fr)]">
               <SpendingChart refreshKey={chartKey} defaultCurrency={settings.mainCurrency} />
               <RecentMovements movements={movements} onEdit={(m) => { setEditingMovement(m); setEditFormOpen(true); }} />
