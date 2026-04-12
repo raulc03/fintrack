@@ -1,5 +1,6 @@
 export type { Currency, Account, CreateAccountInput, UpdateAccountInput } from "./account";
-export type { CategoryType, Category, CreateCategoryInput } from "./category";
+export type { CategoryType, CategoryBucket, Category, CreateCategoryInput } from "./category";
+export type { BudgetBucketSummary, BudgetSummary } from "./budget";
 export type {
   MovementType,
   Movement,

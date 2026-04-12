@@ -10,10 +10,17 @@ from app.database import Base
 class Category(Base):
     __tablename__ = "categories"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True, index=True)
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("users.id"), nullable=True, index=True
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     type: Mapped[str] = mapped_column(String, nullable=False)  # income | expense
+    bucket: Mapped[str | None] = mapped_column(
+        String, nullable=True
+    )  # necessity | desire | save_invest
     icon: Mapped[str] = mapped_column(String, nullable=False, default="tag")
     color: Mapped[str] = mapped_column(String(7), nullable=False, default="#64748b")
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
