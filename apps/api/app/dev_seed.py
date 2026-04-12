@@ -221,9 +221,9 @@ async def seed_dev_data() -> None:
                 user,
                 checking_usd,
                 movement_type="income",
-                amount=517,
+                amount=516.85,
                 description="Freelance landing page project",
-                date=_dt(14),
+                date=_dt(9),
                 category_id=categories["Freelance"].id,
             ),
             _add_movement(
