@@ -123,25 +123,25 @@ function CategoryGrid({
   }
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {categories.map((cat) => {
         const Icon = getCategoryIcon(cat.icon);
         return (
           <div
             key={cat.id}
-            className="group relative flex flex-col items-center gap-2 py-2"
+            className="group relative flex flex-col items-center gap-3 py-2"
           >
             <div
-              className="size-14 rounded-full flex items-center justify-center"
+              className="flex size-18 items-center justify-center rounded-full md:size-20"
               style={{ backgroundColor: cat.color }}
             >
-              <Icon className="size-6 text-white" />
+              <Icon className="size-8 text-white md:size-9" />
             </div>
-            <span className="text-xs font-medium text-center truncate w-full px-1">
+            <span className="w-full px-1 text-center text-sm font-medium leading-tight md:text-base">
               {cat.name}
             </span>
             {cat.type === "expense" && cat.bucket && (
-              <Badge variant="outline" className="h-6 px-2 text-[10px]">
+              <Badge variant="outline" className="h-7 px-2.5 text-xs md:text-sm">
                 {getBudgetBucketMeta(cat.bucket).label}
               </Badge>
             )}
