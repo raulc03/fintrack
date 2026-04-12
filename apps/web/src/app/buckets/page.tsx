@@ -35,6 +35,7 @@ const BUCKET_MOVEMENT_COPY: Record<string, { type: MovementType; description: st
 
 export default function BucketsPage() {
   const { settings } = useSettings();
+  const currentMonthMovementFilters = useMemo(() => ({ currentMonth: true as const }), []);
   const { accounts, loading: accountsLoading, refetch: refetchAccounts } = useAccounts();
   const { categories, loading: categoriesLoading } = useCategories();
   const { summary, loading: summaryLoading } = useBudgetSummary();
@@ -54,7 +55,7 @@ export default function BucketsPage() {
     update: updateMovement,
     remove: removeMovement,
     refetch: refetchMovements,
-  } = useMovements({ currentMonth: true });
+  } = useMovements(currentMonthMovementFilters);
   const [creatingBucket, setCreatingBucket] = useState<string | null>(null);
   const [movementBucket, setMovementBucket] = useState<string | null>(null);
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
