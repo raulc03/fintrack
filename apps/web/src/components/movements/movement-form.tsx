@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { filterCategoriesByType, resolveMovementCategoryId } from "@/lib/constants";
 import { formatCurrency } from "@/lib/currency";
+import { formatDateInTimeZone, getTodayInTimeZone } from "@/lib/date";
 
 interface MovementFormProps {
   open: boolean;
@@ -42,6 +43,17 @@ interface MovementFormProps {
   categories: Category[];
   obligations?: Obligation[];
   editingMovement?: Movement | null;
+  initialValues?: Partial<{
+    type: MovementType;
+    amount: number;
+    description: string;
+    date: string;
+    accountId: string;
+    destinationAccountId: string;
+    categoryId: string;
+    obligationId: string;
+    exchangeRate: number;
+  }>;
 }
 
 export function MovementForm({
@@ -52,12 +64,14 @@ export function MovementForm({
   categories,
   obligations = [],
   editingMovement,
+  initialValues,
 }: MovementFormProps) {
+  const { settings } = useSettings();
   const isEditing = !!editingMovement;
   const [type, setType] = useState<MovementType>("expense");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(getTodayInTimeZone(settings.timezone));
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -71,26 +85,25 @@ export function MovementForm({
       setType(editingMovement.type);
       setAmount(String(editingMovement.amount));
       setDescription(editingMovement.description);
-      setDate(editingMovement.date.split("T")[0]);
+      setDate(formatDateInTimeZone(editingMovement.date, settings.timezone, { year: "numeric", month: "2-digit", day: "2-digit" }, "en-CA"));
       setAccountId(editingMovement.accountId);
       setDestinationAccountId(editingMovement.destinationAccountId ?? "");
       setCategoryId(editingMovement.categoryId);
       setExchangeRate(editingMovement.exchangeRate ? String(editingMovement.exchangeRate) : "");
       setObligationId("");
     } else {
-      setType("expense");
-      setAmount("");
-      setDescription("");
-      setDate(new Date().toISOString().split("T")[0]);
-      setAccountId(accounts[0]?.id ?? "");
-      setDestinationAccountId("");
-      setCategoryId("");
-      setExchangeRate("");
-      setObligationId("");
+      setType(initialValues?.type ?? "expense");
+      setAmount(initialValues?.amount != null ? String(initialValues.amount) : "");
+      setDescription(initialValues?.description ?? "");
+      setDate(initialValues?.date ?? getTodayInTimeZone(settings.timezone));
+      setAccountId(initialValues?.accountId ?? accounts[0]?.id ?? "");
+      setDestinationAccountId(initialValues?.destinationAccountId ?? "");
+      setCategoryId(initialValues?.categoryId ?? "");
+      setExchangeRate(initialValues?.exchangeRate != null ? String(initialValues.exchangeRate) : "");
+      setObligationId(initialValues?.obligationId ?? "");
     }
-  }, [open, editingMovement]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, editingMovement, settings.timezone, initialValues, accounts]); // eslint-disable-line react-hooks/exhaustive-deps
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { settings } = useSettings();
 
   const filteredCategories = filterCategoriesByType(categories, type);
   const resolvedCategoryId = resolveMovementCategoryId(categories, type, categoryId);
@@ -149,7 +162,7 @@ export function MovementForm({
     if (!isEditing) {
       setAmount("");
       setDescription("");
-      setDate(new Date().toISOString().split("T")[0]);
+      setDate(getTodayInTimeZone(settings.timezone));
       setCategoryId("");
       setObligationId("");
     }

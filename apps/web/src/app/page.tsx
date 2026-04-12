@@ -12,7 +12,6 @@ const SpendingChart = dynamic(
 import { RecentMovements } from "@/components/dashboard/recent-movements";
 import { GoalsProgress } from "@/components/dashboard/goals-progress";
 import { BudgetRuleSummary } from "@/components/dashboard/budget-rule-summary";
-import { ObligationsSummary } from "@/components/dashboard/obligations-summary";
 import { QuickAddFab } from "@/components/dashboard/quick-add-fab";
 import { QuickAddSheet } from "@/components/dashboard/quick-add-sheet";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -32,7 +31,7 @@ export default function DashboardPage() {
   const { movements, loading: movementsLoading, create, update } = useMovements();
   const { goals, loading: goalsLoading, refetch: refetchGoals } = useGoals();
   const { categories } = useCategories();
-  const { obligations, summaries: obligationSummaries, refetch: refetchObligations, link: linkObligation } = useObligations();
+  const { obligations, refetch: refetchObligations, link: linkObligation } = useObligations();
   const { settings } = useSettings();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [editFormOpen, setEditFormOpen] = useState(false);
@@ -80,11 +79,8 @@ export default function DashboardPage() {
         ) : (
           <>
             <BalanceSummary accounts={accounts} settings={settings} />
-            <div className="grid gap-4 lg:grid-cols-2">
-              <ObligationsSummary obligations={obligations} summaries={obligationSummaries} />
-              <GoalsProgress goals={goals} />
-            </div>
             <BudgetRuleSummary />
+            <GoalsProgress goals={goals} />
             <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.8fr)]">
               <SpendingChart refreshKey={chartKey} defaultCurrency={settings.mainCurrency} />
               <RecentMovements movements={movements} onEdit={(m) => { setEditingMovement(m); setEditFormOpen(true); }} />

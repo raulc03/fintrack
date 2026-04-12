@@ -41,13 +41,13 @@ export default function GoalsPage() {
   const handleCreate = async (data: CreateGoalInput) => {
     await create(data);
     setCreatingType(null);
-    toast.success("Plan created");
+    toast.success("Goal created");
   };
 
   const handleUpdate = async (goalId: string, data: CreateGoalInput) => {
     await update(goalId, data);
     setEditingGoalId(null);
-    toast.success("Plan updated");
+    toast.success("Goal updated");
   };
 
   const handleDelete = async (goalId: string, goalName: string) => {
@@ -55,7 +55,7 @@ export default function GoalsPage() {
 
     await remove(goalId);
     setEditingGoalId((current) => (current === goalId ? null : current));
-    toast.success("Plan deleted");
+    toast.success("Goal deleted");
   };
 
   const handleCancel = () => {
@@ -71,14 +71,14 @@ export default function GoalsPage() {
   return (
     <>
       <Header
-        title="Plans"
+        title="Goals"
         customAction={
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-1" />
-                  New Plan
+                  New Goal
                 </Button>
               }
             />
@@ -107,7 +107,7 @@ export default function GoalsPage() {
         ) : goals.length === 0 && !creatingType ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Target className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No plans yet</h3>
+            <h3 className="text-lg font-medium">No goals yet</h3>
             <p className="text-muted-foreground text-sm mt-1">
               Set savings targets, investment targets, or expense limits.
             </p>

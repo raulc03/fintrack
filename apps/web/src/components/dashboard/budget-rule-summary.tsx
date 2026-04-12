@@ -1,10 +1,12 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, PiggyBank } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency";
 import { useBudgetSummary } from "@/hooks/use-budget-summary";
 
@@ -44,12 +46,17 @@ export function BudgetRuleSummary() {
         <div>
           <CardTitle className="text-sm font-medium">50 / 30 / 20 This Month</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            Built from recorded income in {summary.currency} and bucketed spending for this month.
+            Fixed commitments and variable activity are grouped inside each bucket for this month.
           </p>
         </div>
-        <Badge variant={overLimitBuckets.length > 0 || summary.unclassifiedExpenseAmount > 0 ? "outline" : "secondary"}>
-          {formatCurrency(summary.income, summary.currency)} income
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={overLimitBuckets.length > 0 || summary.unclassifiedExpenseAmount > 0 ? "outline" : "secondary"}>
+            {formatCurrency(summary.income, summary.currency)} income
+          </Badge>
+          <Link href="/buckets" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            Open buckets
+          </Link>
+        </div>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-3 xl:grid-cols-3">
@@ -67,8 +74,18 @@ export function BudgetRuleSummary() {
                   <span className={`text-xs font-medium ${toneClass}`}>{bucket.progressPercent.toFixed(0)}%</span>
                 </div>
                 <Progress value={progress} className={`mt-3 ${bucket.isOver ? "progress-gradient-red" : "progress-gradient-green"}`} />
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                  <div className="rounded-lg border border-border/50 bg-background/60 px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Fixed</p>
+                    <p className="mt-1 font-medium text-foreground">{formatCurrency(bucket.fixedAmount, summary.currency)}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-background/60 px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Variable</p>
+                    <p className="mt-1 font-medium text-foreground">{formatCurrency(bucket.variableAmount, summary.currency)}</p>
+                  </div>
+                </div>
                 <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{formatCurrency(bucket.actualAmount, summary.currency)} actual</span>
+                  <span>{formatCurrency(bucket.actualAmount, summary.currency)} total</span>
                   <span className={bucket.remainingAmount < 0 ? "text-red-500" : "text-muted-foreground"}>
                     {bucket.remainingAmount >= 0 ? `${formatCurrency(bucket.remainingAmount, summary.currency)} left` : `${formatCurrency(Math.abs(bucket.remainingAmount), summary.currency)} over`}
                   </span>

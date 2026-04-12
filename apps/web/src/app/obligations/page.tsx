@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
+import { useSettings } from "@/hooks/use-settings";
+import { formatDateInTimeZone } from "@/lib/date";
 import { useObligations } from "@/hooks/use-obligations";
 import { ObligationHistoryCard } from "@/components/obligations/obligation-history-card";
 import { useCategories } from "@/hooks/use-categories";
@@ -33,6 +35,7 @@ import { getCoverageColorClass, getCoverageProgressClass, SUPPORTED_CURRENCIES }
 import type { Currency, CreateObligationInput, Movement } from "@finance/types";
 
 export default function ObligationsPage() {
+  const { settings } = useSettings();
   const {
     obligations,
     summaries,
@@ -271,6 +274,8 @@ function MovementPickerDialog({
   movements: Movement[];
   onSelect: (movementId: string) => void;
 }) {
+  const { settings } = useSettings();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -293,7 +298,7 @@ function MovementPickerDialog({
                     <div>
                       <p className="text-sm font-medium">{m.description}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        {formatDateInTimeZone(m.date, settings.timezone, { month: "short", day: "numeric" })}
                       </p>
                     </div>
                     <span className="text-sm font-medium">
@@ -335,8 +340,10 @@ function ObligationCreateRow({
 
   const handleSave = () => {
     if (!canSave) return;
+    const selectedCategory = categories.find((category) => category.id === categoryId);
     onSave({
       name: name.trim(),
+      bucket: selectedCategory?.bucket ?? "necessity",
       categoryId,
       estimatedAmount: parsedAmount,
       currency,

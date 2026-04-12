@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Ellipsis, Receipt, Target, Tag, Wallet, LayoutDashboard, ArrowLeftRight } from "lucide-react";
+import { Ellipsis, Target, Tag, Wallet, LayoutDashboard, ArrowLeftRight, PieChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import {
@@ -14,9 +14,9 @@ import {
 
 const PRIMARY_NAV_ITEMS = [
   { href: ROUTES.HOME, label: "Dashboard", icon: LayoutDashboard },
+  { href: ROUTES.BUCKETS, label: "Buckets", icon: PieChart },
   { href: ROUTES.MOVEMENTS, label: "Movements", icon: ArrowLeftRight },
-  { href: ROUTES.OBLIGATIONS, label: "Bills", icon: Receipt },
-  { href: ROUTES.GOALS, label: "Plans", icon: Target },
+  { href: ROUTES.GOALS, label: "Goals", icon: Target },
 ];
 
 const SECONDARY_NAV_ITEMS = [

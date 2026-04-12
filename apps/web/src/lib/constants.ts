@@ -3,6 +3,7 @@ import {
   ArrowUpRight,
   ArrowLeftRight,
   LayoutDashboard,
+  PieChart,
   Wallet,
   Tag,
   Target,
@@ -61,6 +62,7 @@ export const CATEGORY_COLORS = [
  */
 export const ROUTES = {
   HOME: "/",
+  BUCKETS: "/buckets",
   ACCOUNTS: "/accounts",
   MOVEMENTS: "/movements",
   CATEGORIES: "/categories",
@@ -78,9 +80,9 @@ export const PUBLIC_ROUTES = [ROUTES.LOGIN, ROUTES.SIGNUP];
  */
 export const NAV_ITEMS = [
   { href: ROUTES.HOME, label: "Dashboard", icon: LayoutDashboard },
+  { href: ROUTES.BUCKETS, label: "Buckets", icon: PieChart },
   { href: ROUTES.MOVEMENTS, label: "Movements", icon: ArrowLeftRight },
-  { href: ROUTES.OBLIGATIONS, label: "Bills", icon: Receipt },
-  { href: ROUTES.GOALS, label: "Plans", icon: Target },
+  { href: ROUTES.GOALS, label: "Goals", icon: Target },
   { href: ROUTES.ACCOUNTS, label: "Accounts", icon: Wallet },
   { href: ROUTES.CATEGORIES, label: "Categories", icon: Tag },
 ];
