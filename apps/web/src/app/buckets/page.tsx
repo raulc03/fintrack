@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Category, CreateMovementInput, CreateObligationInput, Movement, MovementType } from "@finance/types";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MovementForm } from "@/components/movements/movement-form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useBudgetSummary } from "@/hooks/use-budget-summary";
 import { useCategories } from "@/hooks/use-categories";
@@ -33,7 +35,17 @@ const BUCKET_MOVEMENT_COPY: Record<string, { type: MovementType; description: st
   save_invest: { type: "expense", description: "Savings or investment move" },
 };
 
+const BUCKET_ORDER = ["necessity", "desire", "save_invest"] as const;
+
+function getValidBucket(value: string | null): (typeof BUCKET_ORDER)[number] {
+  return BUCKET_ORDER.includes(value as (typeof BUCKET_ORDER)[number])
+    ? (value as (typeof BUCKET_ORDER)[number])
+    : "necessity";
+}
+
 export default function BucketsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { settings } = useSettings();
   const currentMonthMovementFilters = useMemo(() => ({ currentMonth: true as const }), []);
   const { accounts, loading: accountsLoading, refetch: refetchAccounts } = useAccounts();
@@ -56,6 +68,7 @@ export default function BucketsPage() {
     remove: removeMovement,
     refetch: refetchMovements,
   } = useMovements(currentMonthMovementFilters);
+  const [activeBucket, setActiveBucket] = useState<(typeof BUCKET_ORDER)[number]>(() => getValidBucket(searchParams.get("bucket")));
   const [creatingBucket, setCreatingBucket] = useState<string | null>(null);
   const [movementBucket, setMovementBucket] = useState<string | null>(null);
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
@@ -65,6 +78,10 @@ export default function BucketsPage() {
     () => new Set(obligations.map((obligation) => obligation.linkedMovementId).filter(Boolean)),
     [obligations]
   );
+
+  useEffect(() => {
+    setActiveBucket(getValidBucket(searchParams.get("bucket")));
+  }, [searchParams]);
 
   const handleMovementSubmit = async (input: CreateMovementInput & { obligationId?: string }) => {
     const { obligationId, ...movementData } = input;
@@ -137,79 +154,102 @@ export default function BucketsPage() {
           </CardHeader>
         </Card>
 
-        {summary.buckets.map((bucket) => {
-          const bucketCategories = categories.filter((category) => category.bucket === bucket.key && category.type === "expense");
-          const bucketObligations = obligations.filter((obligation) => obligation.bucket === bucket.key);
-          const bucketMovements = movements
-            .filter((movement) => {
-              if (movement.type !== "expense") return false;
-              if (linkedMovementIds.has(movement.id)) return false;
-              const category = categories.find((item) => item.id === movement.categoryId);
-              return category?.bucket === bucket.key;
-            })
-            .slice(0, 6);
-          const meta = getBudgetBucketMeta(bucket.key);
+        <Tabs
+          value={activeBucket}
+          onValueChange={(value) => {
+            const nextBucket = getValidBucket(value);
+            setActiveBucket(nextBucket);
+            const nextSearchParams = new URLSearchParams(searchParams.toString());
+            nextSearchParams.set("bucket", nextBucket);
+            router.replace(`/buckets?${nextSearchParams.toString()}`, { scroll: false });
+          }}
+          className="gap-4"
+        >
+          <TabsList className="grid h-auto w-full grid-cols-1 gap-2 rounded-2xl bg-muted/30 p-2 md:grid-cols-3">
+            {summary.buckets.map((bucket) => (
+              <TabsTrigger key={bucket.key} value={bucket.key} className="h-auto min-h-20 flex-col items-start gap-1 rounded-xl px-4 py-3 text-left">
+                <span className="text-sm font-semibold text-foreground">{bucket.label}</span>
+                <span className="text-xs text-muted-foreground">{formatCurrency(bucket.actualAmount, summary.currency)} of {formatCurrency(bucket.targetAmount, summary.currency)}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-          return (
-            <Card key={bucket.key}>
-              <CardHeader className="gap-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base font-semibold">{meta.label}</CardTitle>
-                    <p className="mt-1 text-sm text-muted-foreground">{meta.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={bucket.isOver ? "outline" : "secondary"}>
-                      {formatCurrency(bucket.actualAmount, summary.currency)} total
-                    </Badge>
-                    <Button size="sm" onClick={() => setMovementBucket(bucket.key)}>
-                      <Plus className="mr-1 h-4 w-4" />
-                      Add movement
-                    </Button>
-                  </div>
-                </div>
-                <Progress value={Math.min(bucket.progressPercent, 100)} className={bucket.isOver ? "progress-gradient-red" : "progress-gradient-green"} />
-                <div className="grid gap-3 md:grid-cols-4">
-                  <SummaryMini label="Target" value={formatCurrency(bucket.targetAmount, summary.currency)} />
-                  <SummaryMini label="Fixed" value={formatCurrency(bucket.fixedAmount, summary.currency)} />
-                  <SummaryMini label="Variable" value={formatCurrency(bucket.variableAmount, summary.currency)} />
-                  <SummaryMini label={bucket.remainingAmount >= 0 ? "Left" : "Over"} value={formatCurrency(Math.abs(bucket.remainingAmount), summary.currency)} tone={bucket.remainingAmount >= 0 ? "default" : "danger"} />
-                </div>
-              </CardHeader>
-              <CardContent className="grid gap-4 lg:grid-cols-2">
-                <BucketFixedSection
-                  bucket={bucket.key}
-                  categories={bucketCategories}
-                  obligations={bucketObligations}
-                  onCreate={async (data) => {
-                    await createObligation(data);
-                    refetchObligations();
-                    toast.success("Fixed item created");
-                    setCreatingBucket(null);
-                  }}
-                  onDelete={async (obligationId, obligationName) => {
-                    if (!confirm(`Delete "${obligationName}"? This cannot be undone.`)) return;
-                    await removeObligation(obligationId);
-                    refetchObligations();
-                    toast.success("Fixed item deleted");
-                  }}
-                  creating={creatingBucket === bucket.key}
-                  onStartCreate={() => setCreatingBucket(bucket.key)}
-                  onCancelCreate={() => setCreatingBucket(null)}
-                />
-                <BucketVariableSection
-                  bucket={bucket.key}
-                  movements={bucketMovements}
-                  categories={categories}
-                  onEdit={(movement) => setEditingMovement(movement)}
-                  onDelete={handleMovementDelete}
-                  timezone={settings.timezone}
-                  hasGoalAllocations={bucket.key === "save_invest" && bucket.variableAmount > bucketMovements.reduce((sum, movement) => sum + movement.amount, 0)}
-                />
-              </CardContent>
-            </Card>
-          );
-        })}
+          {summary.buckets.map((bucket) => {
+            const bucketCategories = categories.filter((category) => category.bucket === bucket.key && category.type === "expense");
+            const bucketObligations = obligations.filter((obligation) => obligation.bucket === bucket.key);
+            const bucketMovements = movements
+              .filter((movement) => {
+                if (movement.type !== "expense") return false;
+                if (linkedMovementIds.has(movement.id)) return false;
+                const category = categories.find((item) => item.id === movement.categoryId);
+                return category?.bucket === bucket.key;
+              })
+              .slice(0, 6);
+            const meta = getBudgetBucketMeta(bucket.key);
+
+            return (
+              <TabsContent key={bucket.key} value={bucket.key}>
+                <Card>
+                  <CardHeader className="gap-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <CardTitle className="text-base font-semibold">{meta.label}</CardTitle>
+                        <p className="mt-1 text-sm text-muted-foreground">{meta.description}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={bucket.isOver ? "outline" : "secondary"}>
+                          {formatCurrency(bucket.actualAmount, summary.currency)} total
+                        </Badge>
+                        <Button size="sm" onClick={() => setMovementBucket(bucket.key)}>
+                          <Plus className="mr-1 h-4 w-4" />
+                          Add movement
+                        </Button>
+                      </div>
+                    </div>
+                    <Progress value={Math.min(bucket.progressPercent, 100)} className={bucket.isOver ? "progress-gradient-red" : "progress-gradient-green"} />
+                    <div className="grid gap-3 md:grid-cols-4">
+                      <SummaryMini label="Target" value={formatCurrency(bucket.targetAmount, summary.currency)} />
+                      <SummaryMini label="Fixed" value={formatCurrency(bucket.fixedAmount, summary.currency)} />
+                      <SummaryMini label="Variable" value={formatCurrency(bucket.variableAmount, summary.currency)} />
+                      <SummaryMini label={bucket.remainingAmount >= 0 ? "Left" : "Over"} value={formatCurrency(Math.abs(bucket.remainingAmount), summary.currency)} tone={bucket.remainingAmount >= 0 ? "default" : "danger"} />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 lg:grid-cols-2">
+                    <BucketFixedSection
+                      bucket={bucket.key}
+                      categories={bucketCategories}
+                      obligations={bucketObligations}
+                      onCreate={async (data) => {
+                        await createObligation(data);
+                        refetchObligations();
+                        toast.success("Fixed item created");
+                        setCreatingBucket(null);
+                      }}
+                      onDelete={async (obligationId, obligationName) => {
+                        if (!confirm(`Delete "${obligationName}"? This cannot be undone.`)) return;
+                        await removeObligation(obligationId);
+                        refetchObligations();
+                        toast.success("Fixed item deleted");
+                      }}
+                      creating={creatingBucket === bucket.key}
+                      onStartCreate={() => setCreatingBucket(bucket.key)}
+                      onCancelCreate={() => setCreatingBucket(null)}
+                    />
+                    <BucketVariableSection
+                      bucket={bucket.key}
+                      movements={bucketMovements}
+                      categories={categories}
+                      onEdit={(movement) => setEditingMovement(movement)}
+                      onDelete={handleMovementDelete}
+                      timezone={settings.timezone}
+                      hasGoalAllocations={bucket.key === "save_invest" && bucket.variableAmount > bucketMovements.reduce((sum, movement) => sum + movement.amount, 0)}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            );
+          })}
+        </Tabs>
       </div>
 
       <MovementForm

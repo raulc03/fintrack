@@ -65,7 +65,11 @@ export function BudgetRuleSummary() {
             const toneClass = bucket.isOver ? "text-red-500" : "text-muted-foreground";
 
             return (
-              <div key={bucket.key} className="rounded-xl border border-border/60 bg-muted/20 p-4">
+              <Link
+                key={bucket.key}
+                href={`/buckets?bucket=${bucket.key}`}
+                className="block rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:border-border hover:bg-muted/30"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium">{bucket.label}</p>
@@ -90,7 +94,7 @@ export function BudgetRuleSummary() {
                     {bucket.remainingAmount >= 0 ? `${formatCurrency(bucket.remainingAmount, summary.currency)} left` : `${formatCurrency(Math.abs(bucket.remainingAmount), summary.currency)} over`}
                   </span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
