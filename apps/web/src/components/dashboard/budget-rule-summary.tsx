@@ -73,7 +73,7 @@ export function BudgetRuleSummary() {
               <Link
                 key={bucket.key}
                 href={`/buckets?bucket=${bucket.key}`}
-                className="block rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:border-border hover:bg-muted/30"
+                className="block rounded-xl border border-border/60 bg-muted/10 p-4 transition-colors hover:border-border hover:bg-muted/20"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -84,19 +84,21 @@ export function BudgetRuleSummary() {
                   </div>
                   <span className={`text-sm font-medium ${toneClass}`}>{bucket.progressPercent.toFixed(0)}%</span>
                 </div>
+                <div className="mt-3 text-2xl font-semibold leading-none text-foreground">
+                  {formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">spent this month</p>
                 <Progress value={progress} className={`mt-3 ${bucket.isOver ? "progress-gradient-red" : "progress-gradient-green"}`} />
-                <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                  <div className="rounded-lg border border-border/50 bg-background/60 px-3 py-2">
-                    <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Fixed</p>
-                    <p className="mt-1.5 text-base font-medium text-foreground">{formatCurrencyWithMainConversion(bucket.fixedAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</p>
-                  </div>
-                  <div className="rounded-lg border border-border/50 bg-background/60 px-3 py-2">
-                    <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Variable</p>
-                    <p className="mt-1.5 text-base font-medium text-foreground">{formatCurrencyWithMainConversion(bucket.variableAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</p>
-                  </div>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <span>
+                    Fixed <span className="text-foreground">{formatCurrencyWithMainConversion(bucket.fixedAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</span>
+                  </span>
+                  <span>
+                    Variable <span className="text-foreground">{formatCurrencyWithMainConversion(bucket.variableAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</span>
+                  </span>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} total</span>
+                  <span>Total {formatCurrencyWithMainConversion(bucket.actualAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)}</span>
                   <span className={bucket.remainingAmount < 0 ? "text-red-500" : "text-muted-foreground"}>
                     {bucket.remainingAmount >= 0
                       ? `${formatCurrencyWithMainConversion(bucket.remainingAmount, summary.currency, settings.mainCurrency, settings.usdToPenRate)} left`
