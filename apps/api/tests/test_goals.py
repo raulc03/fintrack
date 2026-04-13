@@ -32,39 +32,52 @@ async def set_goal_created_at(goal_id: str, created_at: datetime):
 
 
 @pytest.mark.asyncio
-async def test_expense_limit_history_returns_monthly_consumption(auth_client: AsyncClient):
+async def test_expense_limit_history_returns_monthly_consumption(
+    auth_client: AsyncClient,
+):
     cats = await auth_client.get("/api/categories?type=expense")
     cat_id = cats.json()[0]["id"]
 
-    acct = await auth_client.post("/api/accounts", json={
-        "name": "Checking", "currency": "USD", "initialBalance": 5000,
-    })
+    acct = await auth_client.post(
+        "/api/accounts",
+        json={
+            "name": "Checking",
+            "currency": "USD",
+            "initialBalance": 5000,
+        },
+    )
     acct_id = acct.json()["id"]
 
     with freeze_goal_time(datetime(2026, 3, 15, 12, 0, 0)):
-        goal = await auth_client.post("/api/goals", json={
-            "name": "Dining Out Limit",
-            "type": "expense_limit",
-            "targetAmount": 400,
-            "currency": "USD",
-            "categoryId": cat_id,
-        })
+        goal = await auth_client.post(
+            "/api/goals",
+            json={
+                "name": "Dining Out Limit",
+                "type": "expense_limit",
+                "targetAmount": 400,
+                "currency": "USD",
+                "categoryId": cat_id,
+            },
+        )
         assert goal.status_code == 201
-        await set_goal_created_at(goal.json()["id"], datetime(2026, 1, 1, 0, 0, 0))
+        await set_goal_created_at(goal.json()["id"], datetime(2026, 1, 1, 12, 0, 0))
 
         for amount, movement_date in [
             (90, datetime(2026, 1, 5, 12, 0, 0)),
             (120, datetime(2026, 2, 5, 12, 0, 0)),
             (60, datetime(2026, 3, 8, 12, 0, 0)),
         ]:
-            await auth_client.post("/api/movements", json={
-                "type": "expense",
-                "amount": amount,
-                "description": f"Expense {movement_date.month}",
-                "date": movement_date.isoformat(),
-                "accountId": acct_id,
-                "categoryId": cat_id,
-            })
+            await auth_client.post(
+                "/api/movements",
+                json={
+                    "type": "expense",
+                    "amount": amount,
+                    "description": f"Expense {movement_date.month}",
+                    "date": movement_date.isoformat(),
+                    "accountId": acct_id,
+                    "categoryId": cat_id,
+                },
+            )
 
         res = await auth_client.get("/api/goals/expense-limit-history?months=3")
         assert res.status_code == 200
@@ -73,49 +86,174 @@ async def test_expense_limit_history_returns_monthly_consumption(auth_client: As
         assert data[0]["goalName"] == "Dining Out Limit"
         assert [month["month"] for month in data[0]["months"]] == ["2026-02", "2026-01"]
         assert [month["spentAmount"] for month in data[0]["months"]] == [120, 90]
-        assert [round(month["progressPercent"], 1) for month in data[0]["months"]] == [30.0, 22.5]
+        assert [round(month["progressPercent"], 1) for month in data[0]["months"]] == [
+            30.0,
+            22.5,
+        ]
 
 
 @pytest.mark.asyncio
-async def test_expense_limit_history_starts_at_goal_creation_month(auth_client: AsyncClient):
+async def test_expense_limit_history_starts_at_goal_creation_month(
+    auth_client: AsyncClient,
+):
     cats = await auth_client.get("/api/categories?type=expense")
     cat_id = cats.json()[0]["id"]
 
-    acct = await auth_client.post("/api/accounts", json={
-        "name": "Checking", "currency": "USD", "initialBalance": 5000,
-    })
+    acct = await auth_client.post(
+        "/api/accounts",
+        json={
+            "name": "Checking",
+            "currency": "USD",
+            "initialBalance": 5000,
+        },
+    )
     acct_id = acct.json()["id"]
 
-    await auth_client.post("/api/movements", json={
-        "type": "expense",
-        "amount": 80,
-        "description": "Old expense",
-        "date": datetime(2026, 2, 10, 12, 0, 0).isoformat(),
-        "accountId": acct_id,
-        "categoryId": cat_id,
-    })
-
-    with freeze_goal_time(datetime(2026, 3, 15, 12, 0, 0)):
-        goal = await auth_client.post("/api/goals", json={
-            "name": "Groceries Limit",
-            "type": "expense_limit",
-            "targetAmount": 300,
-            "currency": "USD",
-            "categoryId": cat_id,
-        })
-        assert goal.status_code == 201
-        await set_goal_created_at(goal.json()["id"], datetime(2026, 3, 1, 0, 0, 0))
-
-        await auth_client.post("/api/movements", json={
+    await auth_client.post(
+        "/api/movements",
+        json={
             "type": "expense",
-            "amount": 50,
-            "description": "Current expense",
-            "date": datetime(2026, 3, 12, 12, 0, 0).isoformat(),
+            "amount": 80,
+            "description": "Old expense",
+            "date": datetime(2026, 2, 10, 12, 0, 0).isoformat(),
             "accountId": acct_id,
             "categoryId": cat_id,
-        })
+        },
+    )
+
+    with freeze_goal_time(datetime(2026, 3, 15, 12, 0, 0)):
+        goal = await auth_client.post(
+            "/api/goals",
+            json={
+                "name": "Groceries Limit",
+                "type": "expense_limit",
+                "targetAmount": 300,
+                "currency": "USD",
+                "categoryId": cat_id,
+            },
+        )
+        assert goal.status_code == 201
+        await set_goal_created_at(goal.json()["id"], datetime(2026, 3, 1, 12, 0, 0))
+
+        await auth_client.post(
+            "/api/movements",
+            json={
+                "type": "expense",
+                "amount": 50,
+                "description": "Current expense",
+                "date": datetime(2026, 3, 12, 12, 0, 0).isoformat(),
+                "accountId": acct_id,
+                "categoryId": cat_id,
+            },
+        )
 
         res = await auth_client.get("/api/goals/expense-limit-history?months=12")
         assert res.status_code == 200
         data = res.json()
         assert data == []
+
+
+@pytest.mark.asyncio
+async def test_expense_limit_current_total_respects_user_timezone(
+    auth_client: AsyncClient,
+):
+    settings = await auth_client.patch(
+        "/api/settings", json={"timezone": "America/Lima"}
+    )
+    assert settings.status_code == 200
+
+    cats = await auth_client.get("/api/categories?type=expense")
+    cat_id = cats.json()[0]["id"]
+
+    acct = await auth_client.post(
+        "/api/accounts",
+        json={
+            "name": "Checking",
+            "currency": "USD",
+            "initialBalance": 5000,
+        },
+    )
+    acct_id = acct.json()["id"]
+
+    with freeze_goal_time(datetime(2026, 3, 1, 12, 0, 0)):
+        goal = await auth_client.post(
+            "/api/goals",
+            json={
+                "name": "Nightlife Limit",
+                "type": "expense_limit",
+                "targetAmount": 400,
+                "currency": "USD",
+                "categoryId": cat_id,
+            },
+        )
+        assert goal.status_code == 201
+
+        # 2026-03-01 02:30 UTC is still Feb 28 in America/Lima, so it should not count toward March.
+        movement = await auth_client.post(
+            "/api/movements",
+            json={
+                "type": "expense",
+                "amount": 80,
+                "description": "Late night expense",
+                "date": datetime(2026, 3, 1, 2, 30, 0).isoformat() + "Z",
+                "accountId": acct_id,
+                "categoryId": cat_id,
+            },
+        )
+        assert movement.status_code == 201
+
+        detail = await auth_client.get(f"/api/goals/{goal.json()['id']}")
+        assert detail.status_code == 200
+        assert detail.json()["currentAmount"] == 0
+
+
+@pytest.mark.asyncio
+async def test_delete_goal_removes_allocations(auth_client: AsyncClient):
+    cats = await auth_client.get("/api/categories?type=expense")
+    cat_id = cats.json()[0]["id"]
+
+    acct = await auth_client.post(
+        "/api/accounts",
+        json={
+            "name": "Checking",
+            "currency": "USD",
+            "initialBalance": 5000,
+        },
+    )
+    acct_id = acct.json()["id"]
+
+    movement = await auth_client.post(
+        "/api/movements",
+        json={
+            "type": "expense",
+            "amount": 120,
+            "description": "Groceries",
+            "date": datetime(2026, 3, 12, 12, 0, 0).isoformat(),
+            "accountId": acct_id,
+            "categoryId": cat_id,
+        },
+    )
+    assert movement.status_code == 201
+
+    goal = await auth_client.post(
+        "/api/goals",
+        json={
+            "name": "Emergency Fund",
+            "type": "savings",
+            "targetAmount": 1000,
+            "currency": "USD",
+        },
+    )
+    assert goal.status_code == 201
+
+    allocation = await auth_client.post(
+        f"/api/goals/{goal.json()['id']}/allocate",
+        json={"amount": 80, "movementId": movement.json()["id"]},
+    )
+    assert allocation.status_code == 201
+
+    delete_res = await auth_client.delete(f"/api/goals/{goal.json()['id']}")
+    assert delete_res.status_code == 204
+
+    detail = await auth_client.get(f"/api/goals/{goal.json()['id']}")
+    assert detail.status_code == 404

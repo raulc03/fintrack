@@ -2,14 +2,21 @@ from datetime import datetime
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func, or_
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.deps import get_current_user
+from app.models.goal import GoalAllocation
 from app.models.user import User
 from app.models.account import Account
 from app.models.movement import Movement
+from app.models.obligation import Obligation
+from app.timezone import (
+    get_month_range_for_timezone,
+    get_user_timezone_name,
+    parse_datetime_for_timezone,
+)
 from app.schemas.movement import (
     CreateMovementInput,
     UpdateMovementInput,
@@ -17,12 +24,6 @@ from app.schemas.movement import (
     MonthlySummary,
     PaginatedMovements,
 )
-
-def parse_date(iso_str: str) -> datetime:
-    """Parse ISO date string and strip timezone info for naive DB columns."""
-    dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
-    return dt.replace(tzinfo=None)
-
 
 router = APIRouter()
 
@@ -39,7 +40,9 @@ def to_response(m: Movement) -> MovementResponse:
         destinationAccountId=m.destination_account_id,
         categoryId=m.category_id,
         exchangeRate=float(m.exchange_rate) if m.exchange_rate is not None else None,
-        destinationAmount=float(m.destination_amount) if m.destination_amount is not None else None,
+        destinationAmount=float(m.destination_amount)
+        if m.destination_amount is not None
+        else None,
         createdAt=m.created_at.isoformat(),
         updatedAt=m.updated_at.isoformat(),
     )
@@ -51,6 +54,7 @@ async def get_movements(
     accountId: str | None = None,
     categoryId: str | None = None,
     currency: str | None = None,
+    currentMonth: bool = False,
     dateFrom: str | None = None,
     dateTo: str | None = None,
     minAmount: float | None = None,
@@ -61,21 +65,32 @@ async def get_movements(
     db: AsyncSession = Depends(get_db),
 ):
     query = select(Movement).where(Movement.user_id == user.id)
+    timezone_name = await get_user_timezone_name(db, user.id)
 
     if type:
         query = query.where(Movement.type == type)
     if accountId:
         query = query.where(
-            or_(Movement.account_id == accountId, Movement.destination_account_id == accountId)
+            or_(
+                Movement.account_id == accountId,
+                Movement.destination_account_id == accountId,
+            )
         )
     if categoryId:
         query = query.where(Movement.category_id == categoryId)
     if currency:
         query = query.where(Movement.currency == currency)
+    if currentMonth:
+        month_start, month_end = get_month_range_for_timezone(timezone_name)
+        query = query.where(Movement.date >= month_start, Movement.date < month_end)
     if dateFrom:
-        query = query.where(Movement.date >= parse_date(dateFrom))
+        query = query.where(
+            Movement.date >= parse_datetime_for_timezone(dateFrom, timezone_name)
+        )
     if dateTo:
-        query = query.where(Movement.date <= parse_date(dateTo))
+        query = query.where(
+            Movement.date <= parse_datetime_for_timezone(dateTo, timezone_name)
+        )
     if minAmount is not None:
         query = query.where(Movement.amount >= minAmount)
     if maxAmount is not None:
@@ -86,7 +101,11 @@ async def get_movements(
     total = (await db.execute(count_query)).scalar() or 0
 
     # Paginate and sort
-    query = query.order_by(Movement.date.desc()).offset((page - 1) * pageSize).limit(pageSize)
+    query = (
+        query.order_by(Movement.date.desc())
+        .offset((page - 1) * pageSize)
+        .limit(pageSize)
+    )
     result = await db.execute(query)
     movements = [to_response(m) for m in result.scalars()]
 
@@ -101,8 +120,8 @@ async def get_monthly_summary(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    start = datetime(year, month, 1)
-    end = datetime(year + (month // 12), (month % 12) + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
+    timezone_name = await get_user_timezone_name(db, user.id)
+    start, end = get_month_range_for_timezone(timezone_name, year=year, month=month)
 
     query = select(Movement).where(
         Movement.user_id == user.id,
@@ -131,7 +150,10 @@ async def get_by_account(
         select(Movement)
         .where(
             Movement.user_id == user.id,
-            or_(Movement.account_id == account_id, Movement.destination_account_id == account_id),
+            or_(
+                Movement.account_id == account_id,
+                Movement.destination_account_id == account_id,
+            ),
         )
         .order_by(Movement.date.desc())
     )
@@ -139,21 +161,37 @@ async def get_by_account(
 
 
 @router.get("/{movement_id}", response_model=MovementResponse)
-async def get_movement(movement_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Movement).where(Movement.id == movement_id, Movement.user_id == user.id))
+async def get_movement(
+    movement_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Movement).where(Movement.id == movement_id, Movement.user_id == user.id)
+    )
     movement = result.scalar_one_or_none()
     if not movement:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found"
+        )
     return to_response(movement)
 
 
 @router.post("", response_model=MovementResponse, status_code=status.HTTP_201_CREATED)
-async def create_movement(data: CreateMovementInput, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def create_movement(
+    data: CreateMovementInput,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     # Get account to determine currency
-    result = await db.execute(select(Account).where(Account.id == data.accountId, Account.user_id == user.id))
+    result = await db.execute(
+        select(Account).where(Account.id == data.accountId, Account.user_id == user.id)
+    )
     account = result.scalar_one_or_none()
     if not account:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account not found")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Account not found"
+        )
 
     movement = Movement(
         user_id=user.id,
@@ -161,7 +199,9 @@ async def create_movement(data: CreateMovementInput, user: User = Depends(get_cu
         amount=data.amount,
         currency=account.currency,
         description=data.description,
-        date=parse_date(data.date),
+        date=parse_datetime_for_timezone(
+            data.date, await get_user_timezone_name(db, user.id)
+        ),
         account_id=data.accountId,
         destination_account_id=data.destinationAccountId,
         category_id=data.categoryId,
@@ -174,15 +214,25 @@ async def create_movement(data: CreateMovementInput, user: User = Depends(get_cu
     elif data.type == "expense":
         account.current_balance = float(account.current_balance) - data.amount
     elif data.type == "transfer" and data.destinationAccountId:
-        dest_result = await db.execute(select(Account).where(Account.id == data.destinationAccountId, Account.user_id == user.id))
+        dest_result = await db.execute(
+            select(Account).where(
+                Account.id == data.destinationAccountId, Account.user_id == user.id
+            )
+        )
         dest = dest_result.scalar_one_or_none()
         if not dest:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Destination account not found")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Destination account not found",
+            )
         # Validate exchange rate before any balance mutations
         is_cross_currency = account.currency != dest.currency
         if is_cross_currency:
             if not data.exchangeRate or data.exchangeRate <= 0:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Exchange rate required for cross-currency transfers")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Exchange rate required for cross-currency transfers",
+                )
         # All validation passed — now mutate balances
         account.current_balance = float(account.current_balance) - data.amount
         if is_cross_currency:
@@ -199,48 +249,85 @@ async def create_movement(data: CreateMovementInput, user: User = Depends(get_cu
 
 async def reverse_balance(db: AsyncSession, movement: Movement) -> None:
     """Undo a movement's effect on account balances."""
-    acct_result = await db.execute(select(Account).where(Account.id == movement.account_id))
+    acct_result = await db.execute(
+        select(Account).where(Account.id == movement.account_id)
+    )
     account = acct_result.scalar_one_or_none()
     if not account:
         return
     if movement.type == "income":
-        account.current_balance = float(account.current_balance) - float(movement.amount)
+        account.current_balance = float(account.current_balance) - float(
+            movement.amount
+        )
     elif movement.type == "expense":
-        account.current_balance = float(account.current_balance) + float(movement.amount)
+        account.current_balance = float(account.current_balance) + float(
+            movement.amount
+        )
     elif movement.type == "transfer" and movement.destination_account_id:
-        account.current_balance = float(account.current_balance) + float(movement.amount)
-        dest_result = await db.execute(select(Account).where(Account.id == movement.destination_account_id))
+        account.current_balance = float(account.current_balance) + float(
+            movement.amount
+        )
+        dest_result = await db.execute(
+            select(Account).where(Account.id == movement.destination_account_id)
+        )
         dest = dest_result.scalar_one_or_none()
         if dest:
-            credit = float(movement.destination_amount) if movement.destination_amount else float(movement.amount)
+            credit = (
+                float(movement.destination_amount)
+                if movement.destination_amount
+                else float(movement.amount)
+            )
             dest.current_balance = float(dest.current_balance) - credit
 
 
 async def apply_balance(db: AsyncSession, movement: Movement) -> None:
     """Apply a movement's effect on account balances."""
-    acct_result = await db.execute(select(Account).where(Account.id == movement.account_id))
+    acct_result = await db.execute(
+        select(Account).where(Account.id == movement.account_id)
+    )
     account = acct_result.scalar_one_or_none()
     if not account:
         return
     if movement.type == "income":
-        account.current_balance = float(account.current_balance) + float(movement.amount)
+        account.current_balance = float(account.current_balance) + float(
+            movement.amount
+        )
     elif movement.type == "expense":
-        account.current_balance = float(account.current_balance) - float(movement.amount)
+        account.current_balance = float(account.current_balance) - float(
+            movement.amount
+        )
     elif movement.type == "transfer" and movement.destination_account_id:
-        account.current_balance = float(account.current_balance) - float(movement.amount)
-        dest_result = await db.execute(select(Account).where(Account.id == movement.destination_account_id))
+        account.current_balance = float(account.current_balance) - float(
+            movement.amount
+        )
+        dest_result = await db.execute(
+            select(Account).where(Account.id == movement.destination_account_id)
+        )
         dest = dest_result.scalar_one_or_none()
         if dest:
-            credit = float(movement.destination_amount) if movement.destination_amount else float(movement.amount)
+            credit = (
+                float(movement.destination_amount)
+                if movement.destination_amount
+                else float(movement.amount)
+            )
             dest.current_balance = float(dest.current_balance) + credit
 
 
 @router.patch("/{movement_id}", response_model=MovementResponse)
-async def update_movement(movement_id: str, data: UpdateMovementInput, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Movement).where(Movement.id == movement_id, Movement.user_id == user.id))
+async def update_movement(
+    movement_id: str,
+    data: UpdateMovementInput,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Movement).where(Movement.id == movement_id, Movement.user_id == user.id)
+    )
     movement = result.scalar_one_or_none()
     if not movement:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found"
+        )
 
     # Reverse old balance effect
     await reverse_balance(db, movement)
@@ -255,12 +342,16 @@ async def update_movement(movement_id: str, data: UpdateMovementInput, user: Use
     for field, value in data.model_dump(exclude_unset=True).items():
         db_field = cast(str, field_map.get(field, field))
         if db_field == "date" and value:
-            value = parse_date(value)
+            value = parse_datetime_for_timezone(
+                value, await get_user_timezone_name(db, user.id)
+            )
         setattr(movement, db_field, value)
 
     # Recalculate destination_amount for cross-currency transfers
     if movement.type == "transfer" and movement.exchange_rate and movement.amount:
-        movement.destination_amount = round(float(movement.amount) * float(movement.exchange_rate), 2)
+        movement.destination_amount = round(
+            float(movement.amount) * float(movement.exchange_rate), 2
+        )
 
     # Re-apply new balance effect
     await apply_balance(db, movement)
@@ -270,11 +361,32 @@ async def update_movement(movement_id: str, data: UpdateMovementInput, user: Use
 
 
 @router.delete("/{movement_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_movement(movement_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Movement).where(Movement.id == movement_id, Movement.user_id == user.id))
+async def delete_movement(
+    movement_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Movement).where(Movement.id == movement_id, Movement.user_id == user.id)
+    )
     movement = result.scalar_one_or_none()
     if not movement:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found"
+        )
 
+    linked_obligations_result = await db.execute(
+        select(Obligation).where(
+            Obligation.user_id == user.id,
+            Obligation.linked_movement_id == movement.id,
+        )
+    )
+    for obligation in linked_obligations_result.scalars().all():
+        obligation.linked_movement_id = None
+
+    await db.execute(
+        delete(GoalAllocation).where(GoalAllocation.movement_id == movement.id)
+    )
+    await db.flush()
     await reverse_balance(db, movement)
     await db.delete(movement)

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, func
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -621,13 +621,12 @@ async def delete_obligation(
     db: AsyncSession = Depends(get_db),
 ):
     obligation = await get_user_obligation(db, obligation_id, user.id)
-    history_result = await db.execute(
-        select(ObligationHistory).where(
+    await db.execute(
+        delete(ObligationHistory).where(
             ObligationHistory.obligation_id == obligation.id
         )
     )
-    for history_row in history_result.scalars().all():
-        await db.delete(history_row)
+    await db.flush()
     await db.delete(obligation)
 
 

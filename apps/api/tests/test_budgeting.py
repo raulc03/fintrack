@@ -238,3 +238,87 @@ async def test_budget_summary_converts_mixed_currency_activity(
     assert payload["income"] == 2240
     assert round(buckets["necessity"]["targetAmount"], 2) == 1120
     assert round(buckets["necessity"]["variableAmount"], 2) == 1024.82
+
+
+@pytest.mark.asyncio
+async def test_delete_movement_cleans_goal_allocations_and_obligation_links(
+    auth_client: AsyncClient,
+):
+    categories_response = await auth_client.get("/api/categories")
+    categories = {item["name"]: item["id"] for item in categories_response.json()}
+
+    account_id = (
+        await auth_client.post(
+            "/api/accounts",
+            json={
+                "name": "Main PEN",
+                "currency": "PEN",
+                "initialBalance": 1000,
+                "color": "#10b981",
+            },
+        )
+    ).json()["id"]
+
+    movement = await auth_client.post(
+        "/api/movements",
+        json={
+            "type": "expense",
+            "amount": 200,
+            "description": "Rent payment",
+            "date": "2026-04-11T12:00:00",
+            "accountId": account_id,
+            "categoryId": categories["Rent"],
+        },
+    )
+    assert movement.status_code == 201
+
+    obligation = await auth_client.post(
+        "/api/obligations",
+        json={
+            "name": "Rent autopay",
+            "bucket": "necessity",
+            "categoryId": categories["Rent"],
+            "estimatedAmount": 200,
+            "currency": "PEN",
+            "dueDay": 10,
+        },
+    )
+    assert obligation.status_code == 201
+
+    linked = await auth_client.patch(
+        f"/api/obligations/{obligation.json()['id']}/link",
+        json={"movementId": movement.json()["id"]},
+    )
+    assert linked.status_code == 200
+
+    goal = await auth_client.post(
+        "/api/goals",
+        json={
+            "name": "Emergency Fund",
+            "type": "savings",
+            "targetAmount": 1000,
+            "currency": "PEN",
+        },
+    )
+    assert goal.status_code == 201
+
+    allocation = await auth_client.post(
+        f"/api/goals/{goal.json()['id']}/allocate",
+        json={"amount": 50, "movementId": movement.json()["id"]},
+    )
+    assert allocation.status_code == 201
+
+    delete_response = await auth_client.delete(
+        f"/api/movements/{movement.json()['id']}"
+    )
+    assert delete_response.status_code == 204
+
+    obligations = await auth_client.get("/api/obligations")
+    deleted_obligation = next(
+        item for item in obligations.json() if item["id"] == obligation.json()["id"]
+    )
+    assert deleted_obligation["linkedMovementId"] is None
+
+    allocations = await auth_client.get(f"/api/goals/{goal.json()['id']}/allocations")
+    assert allocations.status_code == 200
+    assert allocations.json() == []
