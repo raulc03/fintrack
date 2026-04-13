@@ -39,23 +39,35 @@ export default function GoalsPage() {
   const expenseLimitGoals = goals.filter((g) => g.type === "expense_limit");
 
   const handleCreate = async (data: CreateGoalInput) => {
-    await create(data);
-    setCreatingType(null);
-    toast.success("Goal created");
+    try {
+      await create(data);
+      setCreatingType(null);
+      toast.success("Goal created");
+    } catch {
+      toast.error("Failed to create goal");
+    }
   };
 
   const handleUpdate = async (goalId: string, data: CreateGoalInput) => {
-    await update(goalId, data);
-    setEditingGoalId(null);
-    toast.success("Goal updated");
+    try {
+      await update(goalId, data);
+      setEditingGoalId(null);
+      toast.success("Goal updated");
+    } catch {
+      toast.error("Failed to update goal");
+    }
   };
 
   const handleDelete = async (goalId: string, goalName: string) => {
     if (!confirm(`Delete "${goalName}"? This cannot be undone.`)) return;
 
-    await remove(goalId);
-    setEditingGoalId((current) => (current === goalId ? null : current));
-    toast.success("Goal deleted");
+    try {
+      await remove(goalId);
+      setEditingGoalId((current) => (current === goalId ? null : current));
+      toast.success("Goal deleted");
+    } catch {
+      toast.error("Failed to delete goal");
+    }
   };
 
   const handleCancel = () => {

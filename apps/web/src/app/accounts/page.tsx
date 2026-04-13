@@ -15,9 +15,13 @@ export default function AccountsPage() {
   const [creating, setCreating] = useState(false);
 
   const handleCreate = async (data: Parameters<typeof create>[0]) => {
-    await create(data);
-    setCreating(false);
-    toast.success("Account created");
+    try {
+      await create(data);
+      setCreating(false);
+      toast.success("Account created");
+    } catch {
+      toast.error("Failed to create account");
+    }
   };
 
   return (

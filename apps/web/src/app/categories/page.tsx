@@ -24,18 +24,30 @@ export default function CategoriesPage() {
   const unclassifiedExpenseCategories = expenseCategories.filter((c) => !c.bucket);
 
   const handleCreate = async (data: CreateCategoryInput) => {
-    await create(data);
-    toast.success("Category created");
+    try {
+      await create(data);
+      toast.success("Category created");
+    } catch {
+      toast.error("Failed to create category");
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    await remove(id);
-    toast.success(`"${name}" deleted`);
+    try {
+      await remove(id);
+      toast.success(`"${name}" deleted`);
+    } catch {
+      toast.error("Failed to delete category");
+    }
   };
 
   const handleAssignBucket = async (id: string, bucket: NonNullable<Category["bucket"]>) => {
-    await update(id, { bucket });
-    toast.success("Bucket assigned");
+    try {
+      await update(id, { bucket });
+      toast.success("Bucket assigned");
+    } catch {
+      toast.error("Failed to assign bucket");
+    }
   };
 
   return (
