@@ -38,7 +38,7 @@ interface MovementFormProps {
     categoryId: string;
     obligationId?: string;
     exchangeRate?: number;
-  }) => void;
+  }) => void | Promise<void>;
   accounts: Account[];
   categories: Category[];
   obligations?: Obligation[];
@@ -132,7 +132,7 @@ export function MovementForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount, description, accountId, destinationAccountId, categoryId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
     if (!amount || parseFloat(amount) <= 0) newErrors.amount = "Amount must be greater than 0";
@@ -147,26 +147,30 @@ export function MovementForm({
       return;
     }
     setErrors({});
-    onSubmit({
-      type,
-      amount: parseFloat(amount),
-      description: description.trim(),
-      date: `${date}T12:00:00`,
-      accountId,
-      destinationAccountId:
-        type === "transfer" ? destinationAccountId : undefined,
-      categoryId: resolvedCategoryId,
-      obligationId: type === "expense" && obligationId ? obligationId : undefined,
-      exchangeRate: isCrossCurrency ? parseFloat(exchangeRate) : undefined,
-    });
-    if (!isEditing) {
-      setAmount("");
-      setDescription("");
-      setDate(getTodayInTimeZone(settings.timezone));
-      setCategoryId("");
-      setObligationId("");
+    try {
+      await onSubmit({
+        type,
+        amount: parseFloat(amount),
+        description: description.trim(),
+        date: `${date}T12:00:00`,
+        accountId,
+        destinationAccountId:
+          type === "transfer" ? destinationAccountId : undefined,
+        categoryId: resolvedCategoryId,
+        obligationId: type === "expense" && obligationId ? obligationId : undefined,
+        exchangeRate: isCrossCurrency ? parseFloat(exchangeRate) : undefined,
+      });
+      if (!isEditing) {
+        setAmount("");
+        setDescription("");
+        setDate(getTodayInTimeZone(settings.timezone));
+        setCategoryId("");
+        setObligationId("");
+      }
+      onOpenChange(false);
+    } catch {
+      // Let the parent surface the error toast and keep the dialog open.
     }
-    onOpenChange(false);
   };
 
   return (

@@ -102,28 +102,38 @@ export default function BucketsPage() {
   }, [searchParams]);
 
   const handleMovementSubmit = async (input: CreateMovementInput & { obligationId?: string }) => {
-    const { obligationId, ...movementData } = input;
-    const result = await createMovement(movementData);
-    if (obligationId && result?.id) {
-      await linkObligation(obligationId, result.id);
+    try {
+      const { obligationId, ...movementData } = input;
+      const result = await createMovement(movementData);
+      if (obligationId && result?.id) {
+        await linkObligation(obligationId, result.id);
+      }
+      refetchAccounts();
+      refetchGoals();
+      refetchObligations();
+      refetchMovements();
+      toast.success("Movement created");
+      setMovementBucket(null);
+    } catch {
+      toast.error("Failed to create movement");
+      throw new Error("Failed to create movement");
     }
-    refetchAccounts();
-    refetchGoals();
-    refetchObligations();
-    refetchMovements();
-    toast.success("Movement created");
-    setMovementBucket(null);
   };
 
   const handleMovementUpdate = async (input: CreateMovementInput & { obligationId?: string }) => {
     if (!editingMovement) return;
-    await updateMovement(editingMovement.id, input);
-    refetchAccounts();
-    refetchGoals();
-    refetchObligations();
-    refetchMovements();
-    toast.success("Movement updated");
-    setEditingMovement(null);
+    try {
+      await updateMovement(editingMovement.id, input);
+      refetchAccounts();
+      refetchGoals();
+      refetchObligations();
+      refetchMovements();
+      toast.success("Movement updated");
+      setEditingMovement(null);
+    } catch {
+      toast.error("Failed to update movement");
+      throw new Error("Failed to update movement");
+    }
   };
 
   const handleMovementDelete = async (movement: Movement) => {
@@ -268,18 +278,26 @@ export default function BucketsPage() {
                       bucket={bucket.key}
                       categories={bucketCategories}
                       obligations={bucketObligations}
-                      onCreate={async (data) => {
-                        await createObligation(data);
-                        refetchObligations();
-                        toast.success("Fixed item created");
-                        setCreatingBucket(null);
-                      }}
-                      onDelete={async (obligationId, obligationName) => {
-                        if (!confirm(`Delete "${obligationName}"? This cannot be undone.`)) return;
-                        await removeObligation(obligationId);
-                        refetchObligations();
-                        toast.success("Fixed item deleted");
-                      }}
+                  onCreate={async (data) => {
+                    try {
+                      await createObligation(data);
+                      refetchObligations();
+                      toast.success("Fixed item created");
+                      setCreatingBucket(null);
+                    } catch {
+                      toast.error("Failed to create fixed item");
+                    }
+                  }}
+                  onDelete={async (obligationId, obligationName) => {
+                    if (!confirm(`Delete "${obligationName}"? This cannot be undone.`)) return;
+                    try {
+                      await removeObligation(obligationId);
+                      refetchObligations();
+                      toast.success("Fixed item deleted");
+                    } catch {
+                      toast.error("Failed to delete fixed item");
+                    }
+                  }}
                       creating={creatingBucket === bucket.key}
                       onStartCreate={() => setCreatingBucket(bucket.key)}
                       onCancelCreate={() => setCreatingBucket(null)}
