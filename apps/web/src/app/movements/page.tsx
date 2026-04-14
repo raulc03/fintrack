@@ -33,12 +33,8 @@ export default function MovementsPage() {
       type: filters.type,
       accountId: filters.accountId,
       categoryId: filters.categoryId,
-      dateFrom: filters.dateFrom
-        ? new Date(filters.dateFrom).toISOString()
-        : undefined,
-      dateTo: filters.dateTo
-        ? new Date(filters.dateTo).toISOString()
-        : undefined,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
     }),
     [filters]
   );
@@ -52,12 +48,12 @@ export default function MovementsPage() {
     try {
       const { obligationId, ...movementData } = data;
       const created = await create(movementData);
+      refetchAccounts();
       if (obligationId && created?.id) {
         try {
           await linkObligation(obligationId, created.id);
         } catch {
           toast.warning("Movement created, but linking to obligation failed.");
-          return;
         }
       }
       toast.success("Movement created");
