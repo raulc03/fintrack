@@ -3,6 +3,10 @@ from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+
+from app.models.obligation import Obligation
+from .conftest import test_session_factory
 
 
 class FrozenDateTime(datetime):
@@ -16,6 +20,14 @@ class FrozenDateTime(datetime):
 def freeze_obligation_time(value: datetime):
     FrozenDateTime.frozen_now = value
     return patch("app.routers.obligations.datetime", FrozenDateTime)
+
+
+async def set_obligation_cycle_start(obligation_id: str, cycle_start: datetime):
+    async with test_session_factory() as session:
+        obligation = await session.scalar(select(Obligation).where(Obligation.id == obligation_id))
+        assert obligation is not None
+        obligation.cycle_start = cycle_start
+        await session.commit()
 
 
 @pytest.mark.asyncio
@@ -378,3 +390,38 @@ async def test_obligation_history_tracks_paid_and_unpaid_months(auth_client: Asy
         assert jan_item["isPaid"] is True
         assert jan_item["dueAmount"] == 1200
         assert jan_item["paidAmount"] == 1200
+
+
+@pytest.mark.asyncio
+async def test_legacy_utc_cycle_start_keeps_current_month_link(auth_client: AsyncClient):
+    await auth_client.patch("/api/settings", json={"timezone": "America/Lima"})
+
+    cats = await auth_client.get("/api/categories?type=expense")
+    cat_id = cats.json()[0]["id"]
+
+    acct = await auth_client.post("/api/accounts", json={
+        "name": "Checking", "currency": "USD", "initialBalance": 5000,
+    })
+    acct_id = acct.json()["id"]
+
+    with freeze_obligation_time(datetime(2026, 4, 5, 12, 0, 0)):
+        ob = await auth_client.post("/api/obligations", json={
+            "name": "Rent", "categoryId": cat_id, "estimatedAmount": 1200, "currency": "USD", "dueDay": 1,
+        })
+        ob_id = ob.json()["id"]
+
+        mov = await auth_client.post("/api/movements", json={
+            "type": "expense", "amount": 1200, "description": "Rent payment",
+            "date": datetime(2026, 4, 3, 12, 0, 0).isoformat(), "accountId": acct_id, "categoryId": cat_id,
+        })
+        mov_id = mov.json()["id"]
+
+        await auth_client.patch(f"/api/obligations/{ob_id}/link", json={"movementId": mov_id})
+        await set_obligation_cycle_start(ob_id, datetime(2026, 4, 1, 0, 0, 0))
+
+        res = await auth_client.get("/api/obligations")
+        assert res.status_code == 200
+        data = res.json()[0]
+        assert data["isPaid"] is True
+        assert data["linkedMovementId"] == mov_id
+        assert data["carryoverAmount"] == 0

@@ -7,16 +7,18 @@ from app.deps import get_current_user
 from app.models.user import User
 from app.models.user_settings import UserSettings
 from app.schemas.user_settings import UserSettingsResponse, UpdateUserSettingsInput
+from app.timezone import DEFAULT_TIMEZONE
 
 router = APIRouter()
 
-DEFAULT_SETTINGS = UserSettingsResponse(mainCurrency="PEN", usdToPenRate=3.70)
+DEFAULT_SETTINGS = UserSettingsResponse(mainCurrency="PEN", usdToPenRate=3.70, timezone=DEFAULT_TIMEZONE)
 
 
 def to_response(s: UserSettings) -> UserSettingsResponse:
     return UserSettingsResponse(
         mainCurrency=s.main_currency,
         usdToPenRate=float(s.usd_to_pen_rate),
+        timezone=s.timezone,
     )
 
 
@@ -52,6 +54,8 @@ async def update_settings(
         settings.main_currency = data.mainCurrency
     if data.usdToPenRate is not None:
         settings.usd_to_pen_rate = data.usdToPenRate
+    if data.timezone is not None:
+        settings.timezone = data.timezone
 
     await db.flush()
     return to_response(settings)
