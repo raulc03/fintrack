@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/table";
 import { buttonVariants } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency";
-import { format } from "date-fns";
+import { formatDateInTimeZone } from "@/lib/date";
+import { useSettings } from "@/hooks/use-settings";
 
 const typeLabels = {
   savings: "Savings",
@@ -33,6 +34,7 @@ export default function GoalDetailPage({
 }) {
   const { id } = use(params);
   const { goal, allocations, relatedMovements, loading } = useGoal(id);
+  const { settings } = useSettings();
 
   if (loading) {
     return (
@@ -122,7 +124,7 @@ export default function GoalDetailPage({
               <div>
                 <p className="text-2xl font-bold">
                   {goal.deadline
-                    ? format(new Date(goal.deadline), "MMM yyyy")
+                    ? formatDateInTimeZone(goal.deadline, settings.timezone, { month: "short", year: "numeric" })
                     : "No date"}
                 </p>
                 <p className="text-xs text-muted-foreground">Deadline</p>
@@ -147,9 +149,9 @@ export default function GoalDetailPage({
                 <TableBody>
                   {allocations.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(a.date), "MMM dd, yyyy")}
-                      </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDateInTimeZone(a.date, settings.timezone, { month: "short", day: "2-digit", year: "numeric" })}
+                        </TableCell>
                       <TableCell className="text-right font-medium text-green-500">
                         +{formatCurrency(a.amount, goal.currency)}
                       </TableCell>
@@ -182,7 +184,7 @@ export default function GoalDetailPage({
                     {relatedMovements.map((movement) => (
                       <TableRow key={movement.id}>
                         <TableCell className="text-muted-foreground">
-                          {format(new Date(movement.date), "MMM dd, yyyy")}
+                          {formatDateInTimeZone(movement.date, settings.timezone, { month: "short", day: "2-digit", year: "numeric" })}
                         </TableCell>
                         <TableCell>{movement.description}</TableCell>
                         <TableCell className="text-right font-medium text-red-400">

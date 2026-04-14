@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/currency";
 import { MOVEMENT_TYPE_CONFIG } from "@/lib/constants";
-import { format } from "date-fns";
+import { formatDateInTimeZone } from "@/lib/date";
+import { useSettings } from "@/hooks/use-settings";
 
 interface MovementTableProps {
   movements: Movement[];
@@ -24,6 +25,7 @@ export function MovementTable({
   categories,
   onSelect,
 }: MovementTableProps) {
+  const { settings } = useSettings();
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
   if (movements.length === 0) {
@@ -65,8 +67,8 @@ export function MovementTable({
               tabIndex={onSelect ? 0 : undefined}
             >
               <TableCell className="px-4 text-muted-foreground whitespace-nowrap">
-                <span className="hidden sm:inline">{format(new Date(m.date), "MMM dd, yyyy")}</span>
-                <span className="sm:hidden">{format(new Date(m.date), "MM/dd")}</span>
+                <span className="hidden sm:inline">{formatDateInTimeZone(m.date, settings.timezone, { month: "short", day: "2-digit", year: "numeric" })}</span>
+                <span className="sm:hidden">{formatDateInTimeZone(m.date, settings.timezone, { month: "2-digit", day: "2-digit" })}</span>
               </TableCell>
               <TableCell className="text-center">
                 <span

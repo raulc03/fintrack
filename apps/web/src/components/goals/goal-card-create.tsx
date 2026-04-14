@@ -15,6 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Check, X, CalendarDays } from "lucide-react";
+import { useSettings } from "@/hooks/use-settings";
+import { formatLocalDate, getDateInputValueInTimeZone, toLocalDateTimeString } from "@/lib/date";
 
 const typeLabels: Record<GoalType, string> = {
   savings: "Savings",
@@ -37,13 +39,18 @@ export function GoalCardCreate({
   onSave,
   onCancel,
 }: GoalCardCreateProps) {
+  const { settings } = useSettings();
   const [name, setName] = useState(initialValues?.name ?? "");
   const [currency, setCurrency] = useState<Currency>(initialValues?.currency ?? "USD");
   const [targetAmount, setTargetAmount] = useState(
     initialValues?.targetAmount != null ? String(initialValues.targetAmount) : ""
   );
   const [categoryId, setCategoryId] = useState(initialValues?.categoryId ?? "");
-  const [deadline, setDeadline] = useState(initialValues?.deadline?.slice(0, 10) ?? "");
+  const [deadline, setDeadline] = useState(
+    initialValues?.deadline
+      ? getDateInputValueInTimeZone(initialValues.deadline, settings.timezone)
+      : ""
+  );
   const dateRef = useRef<HTMLInputElement>(null);
 
   const canSave =
@@ -59,7 +66,7 @@ export function GoalCardCreate({
       targetAmount: parseFloat(targetAmount),
       currency,
       categoryId: type === "expense_limit" ? categoryId : undefined,
-      deadline: deadline ? new Date(deadline).toISOString() : undefined,
+      deadline: deadline ? toLocalDateTimeString(deadline) : undefined,
     });
   };
 
@@ -133,7 +140,7 @@ export function GoalCardCreate({
           >
             <CalendarDays className="h-3.5 w-3.5" />
             {deadline
-              ? new Date(deadline).toLocaleDateString("en-US", {
+              ? formatLocalDate(deadline, {
                   month: "short",
                   day: "numeric",
                   year: "numeric",

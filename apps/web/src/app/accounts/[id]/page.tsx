@@ -14,7 +14,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountMovementsTable } from "@/components/accounts/account-movements-table";
 import { formatCurrency } from "@/lib/currency";
-import { format } from "date-fns";
+import { formatDateInTimeZone } from "@/lib/date";
+import { useSettings } from "@/hooks/use-settings";
 import { toast } from "sonner";
 import { grid } from "@/lib/responsive";
 
@@ -24,6 +25,7 @@ export default function AccountDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { settings } = useSettings();
   const { account, loading: accountLoading, update } = useAccount(id);
   const { movements, loading: movementsLoading } = useAccountMovements(id);
   const [editing, setEditing] = useState(false);
@@ -101,7 +103,7 @@ export default function AccountDetailPage({
                 {formatCurrency(account.currentBalance, account.currency)}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Created {format(new Date(account.createdAt), "MMM dd, yyyy")}
+                Created {formatDateInTimeZone(account.createdAt, settings.timezone, { month: "short", day: "2-digit", year: "numeric" })}
               </p>
             </CardContent>
             <div
@@ -153,7 +155,7 @@ export default function AccountDetailPage({
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-2">
-                Updated {format(new Date(account.updatedAt), "MMM dd, yyyy")}
+                Updated {formatDateInTimeZone(account.updatedAt, settings.timezone, { month: "short", day: "2-digit", year: "numeric" })}
               </p>
             </CardContent>
           </Card>

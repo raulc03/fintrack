@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { financeService } from "@finance/services";
 import type { Goal, CreateGoalInput, GoalAllocation, GoalHistory, Movement } from "@finance/types";
+import { useSettings } from "@/hooks/use-settings";
 
 const HISTORY_MONTHS = 24;
 
@@ -78,6 +79,7 @@ export function useGoals() {
 }
 
 export function useGoal(id: string) {
+  const { settings } = useSettings();
   const [goal, setGoal] = useState<Goal | null>(null);
   const [allocations, setAllocations] = useState<GoalAllocation[]>([]);
   const [relatedMovements, setRelatedMovements] = useState<Movement[]>([]);
@@ -99,10 +101,6 @@ export function useGoal(id: string) {
           return;
         }
 
-        const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
         const [allocData, movementData] = await Promise.all([
           allocationPromise,
           financeService.movements.getAll(
@@ -110,8 +108,7 @@ export function useGoal(id: string) {
               type: "expense",
               categoryId: goalData.categoryId,
               currency: goalData.currency,
-              dateFrom: monthStart.toISOString(),
-              dateTo: monthEnd.toISOString(),
+              currentMonth: true,
             },
             1,
             100,
@@ -125,7 +122,7 @@ export function useGoal(id: string) {
       })
       .catch((e) => setError(e as Error))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, settings.timezone]);
 
    return { goal, allocations, relatedMovements, loading, error };
 }

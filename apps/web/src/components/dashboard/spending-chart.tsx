@@ -15,6 +15,8 @@ import {
   Legend,
 } from "recharts";
 import { formatCurrency, getCurrencySymbol } from "@/lib/currency";
+import { useSettings } from "@/hooks/use-settings";
+import { getYearMonthInTimeZone } from "@/lib/date";
 
 const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "short" });
 
@@ -78,6 +80,7 @@ function useChartColors() {
 }
 
 export function SpendingChart({ refreshKey, defaultCurrency = "PEN" }: SpendingChartProps) {
+  const { settings } = useSettings();
   const [data, setData] = useState<MonthData[]>([]);
   const [currency, setCurrency] = useState<Currency>(defaultCurrency);
   const colors = useChartColors();
@@ -89,10 +92,11 @@ export function SpendingChart({ refreshKey, defaultCurrency = "PEN" }: SpendingC
   useEffect(() => {
     async function loadData() {
       const now = new Date();
+      const current = getYearMonthInTimeZone(now, settings.timezone);
       const months: MonthData[] = [];
 
       for (let i = 2; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const d = new Date(current.year, current.month - 1 - i, 1);
         const summary = await financeService.movements.getMonthlySummary(
           d.getFullYear(),
           d.getMonth() + 1,
@@ -107,7 +111,7 @@ export function SpendingChart({ refreshKey, defaultCurrency = "PEN" }: SpendingC
       setData(months);
     }
     loadData();
-  }, [currency, refreshKey]);
+  }, [currency, refreshKey, settings.timezone]);
 
   const symbol = getCurrencySymbol(currency);
 

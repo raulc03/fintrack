@@ -11,7 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, CalendarDays } from "lucide-react";
-import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/date";
+
+function formatDateChip(value: string) {
+  return formatLocalDate(value, {
+    month: "short",
+    day: "2-digit",
+  });
+}
 
 const TYPES: { value: MovementType | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -64,10 +71,10 @@ export function MovementFilters({
   }
   if (filters.dateFrom || filters.dateTo) {
     const from = filters.dateFrom
-      ? format(new Date(filters.dateFrom), "MMM dd")
+      ? formatDateChip(filters.dateFrom)
       : "...";
     const to = filters.dateTo
-      ? format(new Date(filters.dateTo), "MMM dd")
+      ? formatDateChip(filters.dateTo)
       : "...";
     activeChips.push({
       label: `${from} – ${to}`,

@@ -1,7 +1,6 @@
 "use client";
 
 import type { Account, Category, Movement } from "@finance/types";
-import { format } from "date-fns";
 import { ArrowLeftRight, Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -15,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency";
 import { MOVEMENT_TYPE_CONFIG } from "@/lib/constants";
+import { formatDateInTimeZone } from "@/lib/date";
+import { useSettings } from "@/hooks/use-settings";
 
 interface MovementDetailsDialogProps {
   movement: Movement | null;
@@ -35,6 +36,7 @@ export function MovementDetailsDialog({
   onEdit,
   onDelete,
 }: MovementDetailsDialogProps) {
+  const { settings } = useSettings();
   if (!movement) return null;
 
   const config = MOVEMENT_TYPE_CONFIG[movement.type];
@@ -76,7 +78,7 @@ export function MovementDetailsDialog({
               <div className="text-right">
                 <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Date</p>
                 <p className="mt-2 text-sm font-medium text-foreground">
-                  {format(new Date(movement.date), "MMM dd, yyyy")}
+                  {formatDateInTimeZone(movement.date, settings.timezone, { month: "short", day: "2-digit", year: "numeric" })}
                 </p>
               </div>
             </div>

@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import type { Movement, MovementType, MovementFilters as Filters } from "@finance/types";
+import { toLocalDateTimeString } from "@/lib/date";
 
 export default function MovementsPage() {
   const [formOpen, setFormOpen] = useState(false);
@@ -33,8 +34,8 @@ export default function MovementsPage() {
       type: filters.type,
       accountId: filters.accountId,
       categoryId: filters.categoryId,
-      dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo,
+      dateFrom: filters.dateFrom ? toLocalDateTimeString(filters.dateFrom, "00:00:00") : undefined,
+      dateTo: filters.dateTo ? toLocalDateTimeString(filters.dateTo, "23:59:59") : undefined,
     }),
     [filters]
   );

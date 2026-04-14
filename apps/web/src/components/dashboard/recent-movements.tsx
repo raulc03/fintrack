@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency";
 import { MOVEMENT_TYPE_CONFIG } from "@/lib/constants";
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "2-digit" });
+import { formatDateInTimeZone } from "@/lib/date";
+import { useSettings } from "@/hooks/use-settings";
 
 interface RecentMovementsProps {
   movements: Movement[];
@@ -15,6 +15,7 @@ interface RecentMovementsProps {
 }
 
 export function RecentMovements({ movements, onEdit }: RecentMovementsProps) {
+  const { settings } = useSettings();
   const recent = movements.slice(0, 5);
 
   return (
@@ -55,7 +56,7 @@ export function RecentMovements({ movements, onEdit }: RecentMovementsProps) {
                     <div>
                       <p className="text-sm font-medium">{m.description}</p>
                       <p className="text-xs text-muted-foreground">
-                        {dateFormatter.format(new Date(m.date))}
+                        {formatDateInTimeZone(m.date, settings.timezone, { month: "short", day: "2-digit" })}
                       </p>
                     </div>
                   </div>

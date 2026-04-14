@@ -12,7 +12,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
 import { MOVEMENT_TYPE_CONFIG } from "@/lib/constants";
-import { format } from "date-fns";
+import { formatDateInTimeZone } from "@/lib/date";
+import { useSettings } from "@/hooks/use-settings";
 
 const badgeVariant: Record<string, "default" | "destructive" | "secondary"> = {
   income: "default",
@@ -27,6 +28,7 @@ interface AccountMovementsTableProps {
 export function AccountMovementsTable({
   movements,
 }: AccountMovementsTableProps) {
+  const { settings } = useSettings();
   if (movements.length === 0) {
     return (
       <p className="text-muted-foreground text-sm py-8 text-center">
@@ -53,8 +55,8 @@ export function AccountMovementsTable({
           return (
             <TableRow key={m.id}>
               <TableCell className="text-muted-foreground whitespace-nowrap">
-                <span className="hidden sm:inline">{format(new Date(m.date), "MMM dd, yyyy")}</span>
-                <span className="sm:hidden">{format(new Date(m.date), "MM/dd")}</span>
+                <span className="hidden sm:inline">{formatDateInTimeZone(m.date, settings.timezone, { month: "short", day: "2-digit", year: "numeric" })}</span>
+                <span className="sm:hidden">{formatDateInTimeZone(m.date, settings.timezone, { month: "2-digit", day: "2-digit" })}</span>
               </TableCell>
               <TableCell className="hidden sm:table-cell">
                 <Badge variant={variant} className="gap-1">

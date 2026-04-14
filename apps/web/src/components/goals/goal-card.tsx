@@ -13,8 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/lib/currency";
-import { format } from "date-fns";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useSettings } from "@/hooks/use-settings";
+import { formatDateInTimeZone } from "@/lib/date";
 
 const typeLabels = {
   savings: "Savings",
@@ -36,6 +37,7 @@ interface GoalCardProps {
 
 export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
   const router = useRouter();
+  const { settings } = useSettings();
   const progress =
     goal.targetAmount > 0
       ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100)
@@ -117,7 +119,7 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
           <span>{progress.toFixed(0)}%</span>
           {goal.deadline && (
             <span>
-              Due {format(new Date(goal.deadline), "MMM dd, yyyy")}
+              Due {formatDateInTimeZone(goal.deadline, settings.timezone, { month: "short", day: "2-digit", year: "numeric" })}
             </span>
           )}
         </div>

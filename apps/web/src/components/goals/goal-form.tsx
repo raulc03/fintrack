@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toLocalDateTimeString } from "@/lib/date";
 
 interface GoalFormProps {
   open: boolean;
@@ -56,7 +57,7 @@ export function GoalForm({
       targetAmount: parseFloat(targetAmount),
       currency,
       categoryId: type === "expense_limit" ? categoryId : undefined,
-      deadline: deadline ? new Date(deadline).toISOString() : undefined,
+      deadline: deadline ? toLocalDateTimeString(deadline) : undefined,
     });
     setName("");
     setType("savings");

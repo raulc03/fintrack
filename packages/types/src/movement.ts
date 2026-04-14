@@ -33,6 +33,7 @@ export interface MovementFilters {
   accountId?: string;
   categoryId?: string;
   currency?: Currency;
+  currentMonth?: boolean;
   type?: MovementType;
   dateFrom?: string;
   dateTo?: string;

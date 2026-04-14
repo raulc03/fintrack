@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
+import { UserSettingsProvider } from "@/lib/user-settings-context";
 import { AppShell } from "@/components/layout/app-shell";
 import "./globals.css";
 
@@ -42,10 +43,12 @@ export default function RootLayout({
           Skip to content
         </a>
         <AuthProvider>
-          <TooltipProvider delay={0}>
-            <AppShell>{children}</AppShell>
-            <Toaster />
-          </TooltipProvider>
+          <UserSettingsProvider>
+            <TooltipProvider delay={0}>
+              <AppShell>{children}</AppShell>
+              <Toaster />
+            </TooltipProvider>
+          </UserSettingsProvider>
         </AuthProvider>
       </body>
     </html>

@@ -35,6 +35,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { filterCategoriesByType, resolveMovementCategoryId } from "@/lib/constants";
 import { parseVoiceInput, type ParsedMovement } from "@/lib/voice-parser";
 import { formatCurrency } from "@/lib/currency";
+import { getTodayInTimeZone } from "@/lib/date";
 
 interface QuickAddSheetProps {
   open: boolean;
@@ -53,11 +54,12 @@ export function QuickAddSheet({
   obligations = [],
   onSubmit,
 }: QuickAddSheetProps) {
+  const { settings } = useSettings();
   const [mode, setMode] = useState<"manual" | "voice">("manual");
   const [type, setType] = useState<MovementType>("expense");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(getTodayInTimeZone(settings.timezone));
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -65,7 +67,6 @@ export function QuickAddSheet({
   const [exchangeRate, setExchangeRate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [parsed, setParsed] = useState<ParsedMovement | null>(null);
-  const { settings } = useSettings();
 
   const speech = useSpeechRecognition();
   const filteredCategories = filterCategoriesByType(categories, type);
@@ -98,7 +99,7 @@ export function QuickAddSheet({
       setType("expense");
       setAmount("");
       setDescription("");
-      setDate(new Date().toISOString().split("T")[0]);
+      setDate(getTodayInTimeZone(settings.timezone));
       setAccountId(defaultAccountId);
       setDestinationAccountId("");
       setCategoryId("");
@@ -107,7 +108,7 @@ export function QuickAddSheet({
       setParsed(null);
       speechReset();
     }
-  }, [open, defaultAccountId, speechReset]);
+  }, [open, defaultAccountId, settings.timezone, speechReset]);
 
   // Parse voice transcript
   const transcript = speech.transcript;
